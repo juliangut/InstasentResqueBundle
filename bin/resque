@@ -1,32 +1,47 @@
 #!/usr/bin/env php
 <?php
 
+// Find and initialize Composer
+$composerAutoloadFile = array(
+    __DIR__ . '/../vendor/autoload.php',
+    __DIR__ . '/../../vendor/autoload.php',
+    __DIR__ . '/../../../autoload.php',
+    __DIR__ . '/../../../../autoload.php',
+    __DIR__ . '/../../../../../autoload.php',
+);
+foreach ($composerAutoloadFile as $file) {
+    if (file_exists($file)) {
+        require $file;
+        break;
+    }
+}
+
+if (!class_exists('Composer\Autoload\ClassLoader', false)) {
+    $errorMessage = <<<ERROR
+You need to set up the project dependencies using the following commands:
+curl -s http://getcomposer.org/installer | php
+php composer.phar install
+ERROR;
+    die($errorMessage);
+}
+
 $QUEUE = getenv('QUEUE');
 if (empty($QUEUE)) {
     die("Set QUEUE env var containing the list of queues to work.\n");
 }
+$queues = explode(',', $QUEUE);
 
-require_once __DIR__."/../../../../../autoload.php";
-
-$REDIS_BACKEND    = getenv('REDIS_BACKEND');
-$REDIS_BACKEND_DB = getenv('REDIS_BACKEND_DB');
+$REDIS_BACKEND = getenv('REDIS_BACKEND');
 if (!empty($REDIS_BACKEND)) {
-    if (empty($REDIS_BACKEND_DB)) {
-        Resque::setBackend($REDIS_BACKEND);
-    } else {
-        Resque::setBackend($REDIS_BACKEND, $REDIS_BACKEND_DB);
-    }
+    $REDIS_BACKEND_DB = getenv('REDIS_BACKEND_DB');
+
+    Resque::setBackend($REDIS_BACKEND, empty($REDIS_BACKEND_DB) ? 0 : $REDIS_BACKEND_DB);
 }
 
-$logLevel = false;
 $LOGGING  = getenv('LOGGING');
 $VERBOSE  = getenv('VERBOSE');
 $VVERBOSE = getenv('VVERBOSE');
-if (!empty($LOGGING) || !empty($VERBOSE)) {
-    $logLevel = true;
-} else if (!empty($VVERBOSE)) {
-    $logLevel = true;
-}
+$logLevel = !empty($LOGGING) || !empty($VERBOSE) || !empty($VVERBOSE);
 
 $APP_INCLUDE = getenv('APP_INCLUDE');
 if ($APP_INCLUDE) {
@@ -34,16 +49,16 @@ if ($APP_INCLUDE) {
         die('APP_INCLUDE ('.$APP_INCLUDE.") does not exist.\n");
     }
 
-    require_once $APP_INCLUDE;
+    require $APP_INCLUDE;
 }
 
-// See if the APP_INCLUDE containes a logger object,
+// See if the APP_INCLUDE contains a logger object,
 // If none exists, fallback to internal logger
 if (!isset($logger) || !is_object($logger)) {
     $logger = new Resque_Log($logLevel);
 }
 
-$BLOCKING = getenv('BLOCKING') !== FALSE;
+$BLOCKING = getenv('BLOCKING') !== false;
 
 $interval = 5;
 $INTERVAL = getenv('INTERVAL');
@@ -51,22 +66,52 @@ if (!empty($INTERVAL)) {
     $interval = $INTERVAL;
 }
 
-$count = 1;
-$COUNT = getenv('COUNT');
-if (!empty($COUNT) && $COUNT > 1) {
-    $count = $COUNT;
-}
+$workerClass = 'Resque_Worker';
+if (getenv('APP_KERNEL')) {
+    $symfonyKernelFile = getenv('APP_KERNEL');
 
-if (getenv('LOG_CHANNEL') && getenv('APP_KERNEL')) {
-    $file = new SplFileInfo(getenv('APP_KERNEL'));
-    $class = $file->getBasename('.php');
+    $kernelClass = basename($symfonyKernelFile, '.php');
+    if (preg_match('/^namespace\s+([A-Za-z0-9\\\\_-]+)\s*;$/m', file_get_contents($symfonyKernelFile), $matches)) {
+        $kernelClass = $matches[1] . '\\' . $kernelClass;
+    }
 
-    require $file;
+    require $symfonyKernelFile;
 
-    $kernel = new $class(getenv('SYMFONY_ENV'), false);
+    if (!class_exists($kernelClass, false)
+        || !in_array('Symfony\Component\HttpKernel\KernelInterface', class_implements($kernelClass))
+    ) {
+        die('APP_KERNEL ('.$symfonyKernelFile.") does not contain a Symfony Kernel class.\n");
+    }
+
+    $SYMFONY_ENV = getenv('SYMFONY_ENV');
+
+    /* @var Symfony\Component\HttpKernel\KernelInterface $kernel */
+    $kernel = new $kernelClass((string) $SYMFONY_ENV, false);
     $kernel->boot();
 
-    $logger = $kernel->getContainer()->get(getenv('LOG_CHANNEL'));
+    if (getenv('LOG_CHANNEL')) {
+        $logger = $kernel->getContainer()->get(getenv('LOG_CHANNEL'));
+    }
+
+    if (getenv('WORKER_CLASS')) {
+        $workerClass = getenv('WORKER_CLASS');
+
+        if (!class_exists($workerClass) || !is_subclass_of($workerClass, 'Resque_Worker')) {
+            $logger->log(Psr\Log\LogLevel::ERROR, 'Worker {worker} is not of the right kind', array('worker' => $workerClass));
+            die();
+        }
+    }
+}
+
+$count = 1;
+$COUNT = getenv('COUNT');
+if (!empty($COUNT)) {
+    if ($COUNT < 1) {
+        $logger->log(Psr\Log\LogLevel::ERROR, 'Workers count must be higher than 0');
+        die();
+    }
+
+    $count = $COUNT;
 }
 
 $PREFIX = getenv('PREFIX');
@@ -113,23 +158,25 @@ Resque_Event::listen('onFailure', function(Exception $exception, Resque_Job $job
 if ($count > 1) {
     for ($i = 0; $i < $count; ++$i) {
         $pid = Resque::fork();
+
         if ($pid == -1) {
             $logger->log(Psr\Log\LogLevel::EMERGENCY, 'Could not fork worker {count}', array('count' => $i));
             die();
-        } else if (!$pid) {
-            // Child, start the worker
-            $queues = explode(',', $QUEUE);
-            $worker = new Resque_Worker($queues);
+        }
+
+        if (!$pid) {
+            /* @var Resque_Worker $worker */
+            $worker = new $workerClass($queues);
             $worker->setLogger($logger);
+
             $logger->log(Psr\Log\LogLevel::NOTICE, 'Starting worker {worker}', array('worker' => $worker));
             $worker->work($interval, $BLOCKING);
             break;
         }
     }
 } else {
-    // Start a single worker
-    $queues = explode(',', $QUEUE);
-    $worker = new Resque_Worker($queues);
+    /* @var Resque_Worker $worker */
+    $worker = $workerClass($queues);
     $worker->setLogger($logger);
 
     $PIDFILE = getenv('PIDFILE');
