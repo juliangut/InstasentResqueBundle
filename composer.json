@@ -21,13 +21,16 @@
         }
     ],
     "require": {
+        "ext-json": "*",
+        "symfony/polyfill-php70": "^1.0",
         "symfony/framework-bundle": ">=2.0",
         "chrisboulton/php-resque": "dev-master",
-        "symfony/polyfill-php70": "^1.0",
         "chrisboulton/php-resque-scheduler": "dev-master"
     },
     "autoload": {
-        "psr-0": { "Instasent\\ResqueBundle": "" }
+        "psr-0": {
+            "Instasent\\ResqueBundle": ""
+        }
     },
     "target-dir": "Instasent/ResqueBundle"
 }

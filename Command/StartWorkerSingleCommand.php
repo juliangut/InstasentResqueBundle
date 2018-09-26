@@ -9,12 +9,12 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 
-class StartWorkerCommand extends ContainerAwareCommand
+class StartWorkerSingleCommand extends ContainerAwareCommand
 {
     /**
      * Command name.
      */
-    const NAME = 'instasent:resque:worker-start';
+    const NAME = 'instasent:resque:worker-single-start';
 
     /**
      * {@inheritdoc}
@@ -23,11 +23,10 @@ class StartWorkerCommand extends ContainerAwareCommand
     {
         $this
             ->setName(self::NAME)
-            ->setDescription('Start a instasent resque worker')
+            ->setDescription('Start a instasent resque worker single')
             ->addOption('logging', 'l', InputOption::VALUE_OPTIONAL, 'Logging service')
-            ->addOption('count', 'c', InputOption::VALUE_REQUIRED, 'How many workers to fork', 1)
             ->addOption('interval', 'i', InputOption::VALUE_REQUIRED, 'How often to check for new jobs across the queues', \Resque::DEFAULT_INTERVAL)
-            ->addOption('worker', 'w', InputOption::VALUE_OPTIONAL, 'Worker class', '\Instasent\ResqueBundle\WorkerBase')
+            ->addOption('worker', 'w', InputOption::VALUE_OPTIONAL, 'Worker class', '\Instasent\ResqueBundle\WorkerSingle')
             ->addOption('blocking', 'b', InputOption::VALUE_OPTIONAL, 'Worker blocking')
             ->addArgument('queues', InputArgument::REQUIRED, 'Queue names (separate using comma)');
     }
@@ -41,14 +40,6 @@ class StartWorkerCommand extends ContainerAwareCommand
 
         $container = $this->getContainer();
 
-        $count = (int) $input->getOption('count');
-        if ($count < 1) {
-            $ioStyle->error('Workers count must be higher than 0');
-            $ioStyle->newLine();
-
-            return 1;
-        }
-
         $interval = $input->getOption('interval');
         if ($interval < 1) {
             $ioStyle->error('Workers interval must be higher than 0');
@@ -58,7 +49,7 @@ class StartWorkerCommand extends ContainerAwareCommand
         }
 
         $workerClass = $input->getOption('worker');
-        if (!class_exists($workerClass) || !is_subclass_of($workerClass, '\Instasent\ResqueBundle\WorkerBase')) {
+        if (!class_exists($workerClass) || !is_subclass_of($workerClass, '\Instasent\ResqueBundle\WorkerSingle')) {
             $ioStyle->error(\sprintf('Worker class %s is not of the right kind', $workerClass));
             $ioStyle->newLine();
 
@@ -76,8 +67,8 @@ class StartWorkerCommand extends ContainerAwareCommand
             $redisDatabase = $container->getParameter('instasent_resque.resque.redis.database');
 
             \Resque::setBackend(
-                $redisHost.':'.$redisPort,
-                empty($redisDatabase) ? 0 : (int) $redisDatabase
+                $redisHost . ':' . $redisPort,
+                empty($redisDatabase) ? 0 : (int)$redisDatabase
             );
         }
 
@@ -93,7 +84,7 @@ class StartWorkerCommand extends ContainerAwareCommand
         $blocking = !empty($input->getOption('blocking'));
 
         // If set, re-attach failed jobs based on retry_strategy
-        \Resque_Event::listen('onFailure', function(\Exception $exception, \Resque_Job $job) use ($ioStyle) {
+        \Resque_Event::listen('onFailure', function (\Exception $exception, \Resque_Job $job) use ($ioStyle) {
             $args = $job->getArguments();
 
             if (empty($args['bcc_resque.retry_strategy'])) {
@@ -141,40 +132,8 @@ class StartWorkerCommand extends ContainerAwareCommand
 //            $includeFile = $kernelRootDir.'/../var/bootstrap.php.cache';
 //        }
 
-        if ($count > 1) {
-            for ($i = 0; $i < $count; ++$i) {
-                $pid = \Resque::fork();
-
-                if ($pid === false || $pid === -1) {
-                    $ioStyle->note(\sprintf('Could not fork worker %d', $i));
-                    $ioStyle->newLine();
-                }
-
-                if ($pid !== 0) {
-                    // Parent
-                    continue;
-                }
-
-                // Child
-                // If retrieved from container ensure service is NOT shared
-                /* @var \Instasent\ResqueBundle\WorkerBase $worker */
-                $worker = $container->has($workerClass) ? $container->get($workerClass) : new $workerClass([]);
-                $worker->setQueues($queues);
-                $worker->setLogger($logger);
-
-                $ioStyle->comment(\sprintf('Starting worker %d', $i));
-                $ioStyle->newLine();
-
-                $worker->work($interval, $blocking);
-
-                break;
-            }
-
-            return 0;
-        }
-
-        /* @var \Instasent\ResqueBundle\WorkerBase $worker */
-        $worker = $container->has($workerClass) ? $container->get($workerClass) : new $workerClass([]);
+        /* @var \Instasent\ResqueBundle\WorkerSingle $worker */
+        $worker = $container->has($workerClass) ? $container->get($workerClass) : new $workerClass();
         $worker->setQueues($queues);
         $worker->setLogger($logger);
 
