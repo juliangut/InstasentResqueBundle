@@ -68,7 +68,7 @@ if (!empty($INTERVAL)) {
 
 $kernel = null;
 
-$workerClass = 'Resque_Worker';
+$workerClass = 'Instasent\ResqueBundle\WorkerBase';
 if (getenv('APP_KERNEL')) {
     $symfonyKernelFile = getenv('APP_KERNEL');
 
@@ -98,7 +98,7 @@ if (getenv('APP_KERNEL')) {
     if (getenv('WORKER_CLASS')) {
         $workerClass = getenv('WORKER_CLASS');
 
-        if (!class_exists($workerClass) || !is_subclass_of($workerClass, 'Resque_Worker')) {
+        if (!class_exists($workerClass) || !is_subclass_of($workerClass, 'Instasent\ResqueBundle\WorkerBase')) {
             $logger->log(Psr\Log\LogLevel::ERROR, 'Worker {worker} is not of the right kind', array('worker' => $workerClass));
             die();
         }
@@ -167,15 +167,12 @@ if ($count > 1) {
         }
 
         if (!$pid) {
-            /* @var Resque_Worker $worker */
+            /* @var Instasent\ResqueBundle\WorkerBase $worker */
             $worker = $kernel !== null
                 ? $kernel->getContainer()->get($workerClass)
-                : new $workerClass($queues);
+                : new $workerClass(array());
+            $worker->setQueues($queues);
             $worker->setLogger($logger);
-
-            if (method_exists($worker, 'setQueues')) {
-                $worker->setQueues($queues);
-            }
 
             $logger->log(Psr\Log\LogLevel::NOTICE, 'Starting worker {worker}', array('worker' => $worker));
             $worker->work($interval, $BLOCKING);
@@ -183,15 +180,12 @@ if ($count > 1) {
         }
     }
 } else {
-    /* @var Resque_Worker $worker */
+    /* @var Instasent\ResqueBundle\WorkerBase $worker */
     $worker = $kernel !== null
         ? $kernel->getContainer()->get($workerClass)
-        : new $workerClass($queues);
+        : new $workerClass(array());
+    $worker->setQueues($queues);
     $worker->setLogger($logger);
-
-    if (method_exists($worker, 'setQueues')) {
-        $worker->setQueues($queues);
-    }
 
     $PIDFILE = getenv('PIDFILE');
     if ($PIDFILE) {

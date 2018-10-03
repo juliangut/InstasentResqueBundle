@@ -149,12 +149,9 @@ Resque_Event::listen('onFailure', function(Exception $exception, Resque_Job $job
 /* @var Instasent\ResqueBundle\WorkerSingle $worker */
 $worker = $kernel !== null
     ? $kernel->getContainer()->get($workerClass)
-    : new $workerClass($queues);
+    : new $workerClass(array());
+$worker->setQueues($queues);
 $worker->setLogger($logger);
-
-if (method_exists($worker, 'setQueues')) {
-    $worker->setQueues($queues);
-}
 
 $PIDFILE = getenv('PIDFILE');
 if ($PIDFILE) {

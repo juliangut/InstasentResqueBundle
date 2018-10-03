@@ -56,10 +56,11 @@ class StartWorkerSingleCommand extends ContainerAwareCommand
             return 1;
         }
 
-        $verbose = empty($input->getOption('quiet')) || !empty($input->getOption('verbose'));
+        $quiet = $input->getOption('quiet');
+        $verbose = $input->getOption('verbose');
         $logger = $input->getOption('logging')
             ? $container->get($input->getOption('logging'))
-            : $logger = new \Resque_Log($verbose);
+            : $logger = new \Resque_Log(empty($quiet) || !empty($verbose));
 
         $redisHost = $container->getParameter('instasent_resque.resque.redis.host');
         $redisPort = $container->getParameter('instasent_resque.resque.redis.port');
@@ -81,7 +82,7 @@ class StartWorkerSingleCommand extends ContainerAwareCommand
 
         $queues = \explode(',', $input->getArgument('queues'));
 
-        $blocking = !empty($input->getOption('blocking'));
+        $blocking = trim($input->getOption('blocking')) !== '';
 
         // If set, re-attach failed jobs based on retry_strategy
         \Resque_Event::listen('onFailure', function (\Exception $exception, \Resque_Job $job) use ($ioStyle) {
@@ -133,7 +134,9 @@ class StartWorkerSingleCommand extends ContainerAwareCommand
 //        }
 
         /* @var \Instasent\ResqueBundle\WorkerSingle $worker */
-        $worker = $container->has($workerClass) ? $container->get($workerClass) : new $workerClass();
+        $worker = $container->has($workerClass)
+            ? $container->get($workerClass)
+            : new $workerClass(array());
         $worker->setQueues($queues);
         $worker->setLogger($logger);
 
