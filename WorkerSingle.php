@@ -82,20 +82,6 @@ class WorkerSingle extends \Resque_Worker
         $this->id = $this->hostname . ':'.getmypid() . ':' . implode(',', $this->queues);
     }
 
-    /**
-     * Set worker queues.
-     *
-     * @param $queues
-     */
-    public function setQueues($queues)
-    {
-        if (!is_array($queues)) {
-            $queues = array($queues);
-        }
-
-        $this->queues = $queues;
-    }
-
 	/**
 	 * Return all workers known to Resque as instantiated instances.
 	 * @return array

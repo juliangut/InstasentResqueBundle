@@ -66,6 +66,8 @@ if (!empty($INTERVAL)) {
     $interval = $INTERVAL;
 }
 
+$kernel = null;
+
 $workerClass = 'Resque_Worker';
 if (getenv('APP_KERNEL')) {
     $symfonyKernelFile = getenv('APP_KERNEL');
@@ -166,8 +168,14 @@ if ($count > 1) {
 
         if (!$pid) {
             /* @var Resque_Worker $worker */
-            $worker = new $workerClass($queues);
+            $worker = $kernel !== null
+                ? $kernel->getContainer()->get($workerClass)
+                : new $workerClass($queues);
             $worker->setLogger($logger);
+
+            if (method_exists($worker, 'setQueues')) {
+                $worker->setQueues($queues);
+            }
 
             $logger->log(Psr\Log\LogLevel::NOTICE, 'Starting worker {worker}', array('worker' => $worker));
             $worker->work($interval, $BLOCKING);
@@ -176,8 +184,14 @@ if ($count > 1) {
     }
 } else {
     /* @var Resque_Worker $worker */
-    $worker = $workerClass($queues);
+    $worker = $kernel !== null
+        ? $kernel->getContainer()->get($workerClass)
+        : new $workerClass($queues);
     $worker->setLogger($logger);
+
+    if (method_exists($worker, 'setQueues')) {
+        $worker->setQueues($queues);
+    }
 
     $PIDFILE = getenv('PIDFILE');
     if ($PIDFILE) {
