@@ -58,7 +58,11 @@ class StartWorkerCommand extends ContainerAwareCommand
         }
 
         $workerClass = $input->getOption('worker');
-        if (!class_exists($workerClass) || !is_subclass_of($workerClass, '\Instasent\ResqueBundle\WorkerBase')) {
+        if ($workerClass !== '\Instasent\ResqueBundle\WorkerBase'
+            && (!class_exists($workerClass)
+                || !is_subclass_of($workerClass, '\Instasent\ResqueBundle\WorkerBase')
+            )
+        ) {
             $ioStyle->error(\sprintf('Worker class %s is not of the right kind', $workerClass));
             $ioStyle->newLine();
 
@@ -132,15 +136,6 @@ class StartWorkerCommand extends ContainerAwareCommand
                 ));
             }
         });
-
-//        $kernelRootDir = $container->getParameter('kernel.root_dir');
-//        $includeFile = '';
-//        // Add compatibility with Symfony 2/3
-//        if (file_exists($kernelRootDir.'/bootstrap.php.cache')) {
-//            $includeFile = $kernelRootDir.'/bootstrap.php.cache';
-//        } elseif (file_exists($kernelRootDir.'/../var/bootstrap.php.cache')) {
-//            $includeFile = $kernelRootDir.'/../var/bootstrap.php.cache';
-//        }
 
         if ($count > 1) {
             for ($i = 0; $i < $count; ++$i) {
