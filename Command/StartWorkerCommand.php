@@ -73,16 +73,16 @@ class StartWorkerCommand extends ContainerAwareCommand
         }
 
         if (!$input->getOption('foreground')) {
-            $process->run();
-
             if (!$input->getOption('quiet')) {
                 $ioStyle->text(\sprintf(
-                    '<info>Worker started</info> %s:%s:%s',
+                    'Starting worker %s:%s:%s',
                     function_exists('gethostname') ? gethostname() : php_uname('n'),
                     \trim($process->getOutput()),
                     $input->getArgument('queues')
                 ));
             }
+
+            $process->run();
 
             return 0;
         }

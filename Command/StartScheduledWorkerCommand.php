@@ -88,7 +88,7 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
 
             if (!$input->getOption('quiet')) {
                 $ioStyle->text(\sprintf(
-                    '<info>Worker started</info> %s:%s:%s',
+                    'Starting worker %s:%s:%s',
                     function_exists('gethostname') ? gethostname() : php_uname('n'),
                     $pid,
                     $input->getArgument('queues')

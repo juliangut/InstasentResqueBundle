@@ -171,6 +171,7 @@ if ($count > 1) {
             $worker = $kernel !== null
                 ? $kernel->getContainer()->get($workerClass)
                 : new $workerClass(array());
+            $worker->setId($worker->__toString().implode(',', $queues));
             $worker->setQueues($queues);
             $worker->setLogger($logger);
 
@@ -184,6 +185,7 @@ if ($count > 1) {
     $worker = $kernel !== null
         ? $kernel->getContainer()->get($workerClass)
         : new $workerClass(array());
+    $worker->setId($worker->__toString().implode(',', $queues));
     $worker->setQueues($queues);
     $worker->setLogger($logger);
 
