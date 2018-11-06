@@ -26,8 +26,8 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
             ->setDescription('Start a instasent scheduled resque worker')
             ->addOption('interval', 'i', InputOption::VALUE_REQUIRED, 'How often to check for new jobs across the queues', \Resque::DEFAULT_INTERVAL)
             ->addOption('worker', 'w', InputOption::VALUE_OPTIONAL, 'Worker class', '\Instasent\ResqueBundle\WorkerScheduler')
-            ->addOption('force', null, InputOption::VALUE_NONE, 'Force creation of a new worker if the PID file exists', false)
-            ->addOption('foreground', 'f', InputOption::VALUE_NONE, 'Should the worker run in foreground', false)
+            ->addOption('force', null, InputOption::VALUE_NONE, 'Force creation of a new worker if the PID file exists')
+            ->addOption('foreground', 'f', InputOption::VALUE_NONE, 'Should the worker run in foreground')
             ->addOption('memory-limit', 'm', InputOption::VALUE_REQUIRED, 'Force cli memory_limit (expressed in Mbytes)', 0);
     }
 
