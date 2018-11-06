@@ -160,5 +160,8 @@ if ($PIDFILE) {
         die('Could not write PID information to ' . $PIDFILE);
 }
 
-$logger->log(Psr\Log\LogLevel::NOTICE, 'Starting worker {worker}', array('worker' => $worker));
+$logger->log(Psr\Log\LogLevel::NOTICE, 'Starting worker {worker} ({worker_class})', array(
+    'worker' => $worker,
+    'worker_class' => $workerClass,
+));
 $worker->work($interval, $BLOCKING);

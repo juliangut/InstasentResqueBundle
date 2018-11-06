@@ -175,7 +175,10 @@ if ($count > 1) {
             $worker->setQueues($queues);
             $worker->setLogger($logger);
 
-            $logger->log(Psr\Log\LogLevel::NOTICE, 'Starting worker {worker}', array('worker' => $worker));
+            $logger->log(Psr\Log\LogLevel::NOTICE, 'Starting worker {worker} ({worker_class})', array(
+                'worker' => $worker,
+                'worker_class' => $workerClass,
+            ));
             $worker->work($interval, $BLOCKING);
             break;
         }
@@ -195,6 +198,9 @@ if ($count > 1) {
             die('Could not write PID information to ' . $PIDFILE);
     }
 
-    $logger->log(Psr\Log\LogLevel::NOTICE, 'Starting worker {worker}', array('worker' => $worker));
+    $logger->log(Psr\Log\LogLevel::NOTICE, 'Starting worker {worker} ({worker_class})', array(
+            'worker' => $worker,
+            'worker_class' => $workerClass,
+    ));
     $worker->work($interval, $BLOCKING);
 }
