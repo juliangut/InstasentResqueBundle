@@ -10,21 +10,32 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class StopWorkerCommand extends ContainerAwareCommand
 {
+    /**
+     * Command name.
+     */
+    const NAME = 'instasent:resque:worker-stop';
+
+    /**
+     * {@inheritdoc}
+     */
     protected function configure()
     {
         $this
-            ->setName('instasent:resque:worker-stop')
+            ->setName(self::NAME)
             ->setDescription('Stop a instasent resque worker')
             ->addArgument('id', InputArgument::OPTIONAL, 'Worker id')
-            ->addOption('all', 'a', InputOption::VALUE_NONE, 'Should kill all workers')
-        ;
+            ->addOption('all', 'a', InputOption::VALUE_NONE, 'Should kill all workers');
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        /** @var \Instasent\ResqueBundle\Resque $resque */
         $resque = $this->getContainer()->get('instasent_resque.resque');
 
-        if ($input->getOption('all')) {
+        if (trim($input->getOption('all')) !== '') {
             $workers = $resque->getWorkers();
         } else {
             $worker = $resque->getWorker($input->getArgument('id'));
@@ -32,13 +43,14 @@ class StopWorkerCommand extends ContainerAwareCommand
             if (!$worker) {
                 $availableWorkers = $resque->getWorkers();
                 if (!empty($availableWorkers)) {
-                    $output->writeln('<error>You need to give an existing worker.</error>');
+                    $output->writeln('<error>You need to provide an existing worker.</error>');
                     $output->writeln('Running workers are:');
-                    foreach ($resque->getWorkers() as $worker) {
+
+                    foreach ($availableWorkers as $worker) {
                         $output->writeln($worker->getId());
                     }
                 } else {
-                    $output->writeln('<error>There is no running worker.</error>');
+                    $output->writeln('<error>There are no running workers.</error>');
                 }
 
                 return 1;

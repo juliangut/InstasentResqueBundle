@@ -9,17 +9,29 @@ use Symfony\Component\Console\Output\OutputInterface;
 
 class ClearQueueCommand extends ContainerAwareCommand
 {
+    /**
+     * Command name.
+     */
+    const NAME = 'instasent:resque:clear-queue';
+
+    /**
+     * {@inheritdoc}
+     */
     protected function configure()
     {
         $this
-            ->setName('instasent:resque:clear-queue')
+            ->setName(self::NAME)
             ->setDescription('Clear a Instasent queue')
             ->addArgument('queue', InputArgument::REQUIRED, 'Queue name')
         ;
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
+        /** @var \Instasent\ResqueBundle\Resque $resque */
         $resque = $this->getContainer()->get('instasent_resque.resque');
 
         $queue = $input->getArgument('queue');

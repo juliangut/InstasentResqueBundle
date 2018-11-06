@@ -2,14 +2,14 @@
 
 namespace Instasent\ResqueBundle\Command;
 
-use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 
-class StartWorkerSingleCommand extends ContainerAwareCommand
+class StartWorkerSingleCommand extends StartWorkerCommand
 {
     /**
      * Command name.
@@ -28,24 +28,54 @@ class StartWorkerSingleCommand extends ContainerAwareCommand
             ->addOption('interval', 'i', InputOption::VALUE_REQUIRED, 'How often to check for new jobs across the queues', \Resque::DEFAULT_INTERVAL)
             ->addOption('worker', 'w', InputOption::VALUE_OPTIONAL, 'Worker class', '\Instasent\ResqueBundle\WorkerSingle')
             ->addOption('blocking', 'b', InputOption::VALUE_OPTIONAL, 'Worker blocking')
+            ->addOption('foreground', 'f', InputOption::VALUE_NONE, 'Should the worker run in foreground', false)
+            ->addOption('memory-limit', 'm', InputOption::VALUE_REQUIRED, 'Force cli memory_limit (expressed in Mbytes)', 0)
             ->addArgument('queues', InputArgument::REQUIRED, 'Queue names (separate using comma)');
     }
 
     /**
-     * {@inheritdoc}
+     * Get environment data.
+     *
+     * @param ContainerInterface $container
+     * @param InputInterface     $input
+     *
+     * @throws \Exception
+     *
+     * @return array
      */
-    protected function execute(InputInterface $input, OutputInterface $output)
+    protected function getEnvironment(ContainerInterface $container, InputInterface $input)
     {
-        $ioStyle = new SymfonyStyle($input, $output);
-
-        $container = $this->getContainer();
+        $environment = $this->getBaseEnvironment($container, $input);
 
         $interval = $input->getOption('interval');
         if ($interval < 1) {
-            $ioStyle->error('Workers interval must be higher than 0');
-            $ioStyle->newLine();
+            throw new \Exception('Workers interval must be higher than 0');
+        }
+        $environment['INTERVAL'] = $interval;
 
-            return 1;
+        $prefix = $container->getParameter('instasent_resque.prefix');
+        if (!empty($prefix)) {
+            $environment['PREFIX'] = $prefix;
+        }
+
+        $redisHost = $container->getParameter('instasent_resque.resque.redis.host');
+        $redisPort = $container->getParameter('instasent_resque.resque.redis.port');
+        if (!empty($redisHost) && !empty($redisPort)) {
+            $environment['REDIS_BACKEND'] = $redisHost.':'.$redisPort;
+
+            $redisDatabase = $container->getParameter('instasent_resque.resque.redis.database');
+            if (!empty($redisDatabase)) {
+                $environment['REDIS_BACKEND_DB'] = $redisDatabase;
+            }
+        }
+
+        $logger = $input->getOption('logging');
+        if ($logger) {
+            if (!$container->has($logger)) {
+                throw new \Exception(\sprintf('Logger %s cannot be found', $logger));
+            }
+
+            $environment['LOG_CHANNEL'] = $logger;
         }
 
         $workerClass = $input->getOption('worker');
@@ -54,92 +84,25 @@ class StartWorkerSingleCommand extends ContainerAwareCommand
                 || !is_subclass_of($workerClass, '\Instasent\ResqueBundle\WorkerSingle')
             )
         ) {
-            $ioStyle->error(\sprintf('Worker class %s is not of the right kind', $workerClass));
-            $ioStyle->newLine();
-
-            return 1;
+            throw new \Exception(\sprintf('Worker class %s is not of the right kind', $workerClass));
         }
-
-        $quiet = $input->getOption('quiet');
-        $verbose = $input->getOption('verbose');
-        $logger = $input->getOption('logging')
-            ? $container->get($input->getOption('logging'))
-            : $logger = new \Resque_Log(empty($quiet) || !empty($verbose));
-
-        $redisHost = $container->getParameter('instasent_resque.resque.redis.host');
-        $redisPort = $container->getParameter('instasent_resque.resque.redis.port');
-        if (!empty($redisHost) && !empty($redisPort)) {
-            $redisDatabase = $container->getParameter('instasent_resque.resque.redis.database');
-
-            \Resque::setBackend(
-                $redisHost . ':' . $redisPort,
-                empty($redisDatabase) ? 0 : (int)$redisDatabase
-            );
-        }
-
-        $prefix = $container->getParameter('instasent_resque.prefix');
-        if (!empty($prefix)) {
-            $ioStyle->comment(\sprintf('Prefix set to %s', $prefix));
-
-            \Resque_Redis::prefix($prefix);
-        }
-
-        $queues = \explode(',', $input->getArgument('queues'));
+        $environment['WORKER_CLASS'] = $workerClass;
 
         $blocking = trim($input->getOption('blocking')) !== '';
+        if ($blocking) {
+            $environment['BLOCKING'] = 1;
+        }
 
-        // If set, re-attach failed jobs based on retry_strategy
-        \Resque_Event::listen('onFailure', function (\Exception $exception, \Resque_Job $job) use ($ioStyle) {
-            $args = $job->getArguments();
+        $environment['QUEUE'] = $input->getArgument('queues');
 
-            if (empty($args['bcc_resque.retry_strategy'])) {
-                return;
-            }
+        return $environment;
+    }
 
-            if (!isset($args['bcc_resque.retry_attempt'])) {
-                $args['bcc_resque.retry_attempt'] = 0;
-            }
-
-            $backOff = $args['bcc_resque.retry_strategy'];
-            if (!isset($backOff[$args['bcc_resque.retry_attempt']])) {
-                return;
-            }
-
-            $delay = $backOff[$args['bcc_resque.retry_attempt']];
-            $args['bcc_resque.retry_attempt']++;
-
-            if ($delay === 0) {
-                \Resque::enqueue($job->queue, $job->payload['class'], $args);
-
-                $ioStyle->note(\sprintf(
-                    'Job failed. Auto re-queued, attempt number: %d',
-                    $args['bcc_resque.retry_attempt'] - 1
-                ));
-            } else {
-                $at = time() + $delay;
-
-                \ResqueScheduler::enqueueAt($at, $job->queue, $job->payload['class'], $args);
-
-                $ioStyle->note(\sprintf(
-                    'Job failed. Auto re-queued. Scheduled for: %s, attempt number: %d',
-                    date('Y-m-d H:i:s', $at),
-                    $args['bcc_resque.retry_attempt'] - 1
-                ));
-            }
-        });
-
-        /* @var \Instasent\ResqueBundle\WorkerSingle $worker */
-        $worker = $container->has($workerClass)
-            ? $container->get($workerClass)
-            : new $workerClass(array());
-        $worker->setQueues($queues);
-        $worker->setLogger($logger);
-
-        $ioStyle->comment('Starting worker');
-        $ioStyle->newLine();
-
-        $worker->work($interval, $blocking);
-
-        return 0;
+    /**
+     * {@inheritdoc}
+     */
+    protected function getBinaryName()
+    {
+        return 'resque-single';
     }
 }

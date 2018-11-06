@@ -52,26 +52,76 @@ if ($APP_INCLUDE) {
     require_once $APP_INCLUDE;
 }
 
+// See if the APP_INCLUDE contains a logger object,
+// If none exists, fallback to internal logger
+if (!isset($logger) || !is_object($logger)) {
+    $logger = new Resque_Log($logLevel);
+}
+
 $interval = 5;
 $INTERVAL = getenv('INTERVAL');
 if (!empty($INTERVAL)) {
     $interval = $INTERVAL;
 }
 
+
+
+$kernel = null;
+
+$workerClass = 'Instasent\ResqueBundle\WorkerSingle';
+if (getenv('APP_KERNEL')) {
+    $symfonyKernelFile = getenv('APP_KERNEL');
+
+    $kernelClass = basename($symfonyKernelFile, '.php');
+    if (preg_match('/^namespace\s+([A-Za-z0-9\\\\_-]+)\s*;$/m', file_get_contents($symfonyKernelFile), $matches)) {
+        $kernelClass = $matches[1] . '\\' . $kernelClass;
+    }
+
+    require $symfonyKernelFile;
+
+    if (!class_exists($kernelClass, false)
+        || !in_array('Symfony\Component\HttpKernel\KernelInterface', class_implements($kernelClass))
+    ) {
+        die('APP_KERNEL ('.$symfonyKernelFile.") does not contain a Symfony Kernel class.\n");
+    }
+
+    $SYMFONY_ENV = getenv('SYMFONY_ENV');
+
+    /* @var Symfony\Component\HttpKernel\KernelInterface $kernel */
+    $kernel = new $kernelClass((string) $SYMFONY_ENV, false);
+    $kernel->boot();
+
+    if (getenv('LOG_CHANNEL')) {
+        $logger = $kernel->getContainer()->get(getenv('LOG_CHANNEL'));
+    }
+
+    if (getenv('WORKER_CLASS')) {
+        $workerClass = getenv('WORKER_CLASS');
+
+        if (!class_exists($workerClass) || !is_subclass_of($workerClass, 'Instasent\ResqueBundle\WorkerScheduler')) {
+            $logger->log(Psr\Log\LogLevel::ERROR, 'Worker {worker} is not of the right kind', array('worker' => $workerClass));
+            die();
+        }
+    }
+}
+
 $PREFIX = getenv('PREFIX');
 if (!empty($PREFIX)) {
-    fwrite(STDOUT, '*** Prefix set to '.$PREFIX."\n");
+    $logger->log(Psr\Log\LogLevel::INFO, 'Prefix set to {prefix}', array('prefix' => $PREFIX));
     Resque_Redis::prefix($PREFIX);
 }
 
-$worker = new ResqueScheduler_Worker();
+/* @var Instasent\ResqueBundle\WorkerScheduler $worker */
+$worker = $kernel !== null
+    ? $kernel->getContainer()->get($workerClass)
+    : new $workerClass(array());
 $worker->logLevel = $logLevel;
 
 $PIDFILE = getenv('PIDFILE');
 if ($PIDFILE) {
-  file_put_contents($PIDFILE, getmypid()) or
-    die('Could not write PID information to ' . $PIDFILE);
+    file_put_contents($PIDFILE, getmypid()) or
+        die('Could not write PID information to ' . $PIDFILE);
 }
 
-fwrite(STDOUT, "*** Starting scheduler worker\n");
+$logger->log(Psr\Log\LogLevel::NOTICE, 'Starting scheduler worker');
 $worker->work($interval);

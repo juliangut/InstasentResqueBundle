@@ -12,21 +12,31 @@ if (!defined('SIGTERM')) {
 
 class StopScheduledWorkerCommand extends ContainerAwareCommand
 {
+    /**
+     * Command name.
+     */
+    const NAME = 'instasent:resque:scheduledworker-stop';
+
+    /**
+     * {@inheritdoc}
+     */
     protected function configure()
     {
         $this
-            ->setName('instasent:resque:scheduledworker-stop')
-            ->setDescription('Stop a instasent resque scheduled worker')
-        ;
+            ->setName(self::NAME)
+            ->setDescription('Stop a instasent resque scheduled worker');
     }
 
+    /**
+     * {@inheritdoc}
+     */
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $pidFile = $this->getContainer()->get('kernel')->getCacheDir().'/instasent_resque_scheduledworker.pid';
         if (!file_exists($pidFile)) {
             $output->writeln('No PID file found');
 
-            return -1;
+            return 1;
         }
 
         $pid = file_get_contents($pidFile);
