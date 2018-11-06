@@ -51,9 +51,9 @@ class StartWorkerCommand extends ContainerAwareCommand
             // In windows: When you pass an environment to CMD it replaces the old environment
             // That means we create a lot of problems with respect to user accounts and missing vars
             // this is a workaround where we add the vars to the existing environment.
-            if (defined('PHP_WINDOWS_VERSION_BUILD')) {
+            if (\defined('PHP_WINDOWS_VERSION_BUILD')) {
                 foreach ($environment as $var => $value) {
-                    putenv($var.'='.$value);
+                    \putenv($var.'='.$value);
                 }
 
                 $environment = null;
@@ -76,7 +76,7 @@ class StartWorkerCommand extends ContainerAwareCommand
             if (!$input->getOption('quiet')) {
                 $ioStyle->text(\sprintf(
                     'Starting worker %s:%s:%s',
-                    function_exists('gethostname') ? gethostname() : php_uname('n'),
+                    \function_exists('gethostname') ? \gethostname() : \php_uname('n'),
                     \trim($process->getOutput()),
                     $input->getArgument('queues')
                 ));
@@ -147,20 +147,12 @@ class StartWorkerCommand extends ContainerAwareCommand
             $environment['LOG_CHANNEL'] = $logger;
         }
 
-        $workerClass = $input->getOption('worker');
-        if ($workerClass !== '\Instasent\ResqueBundle\WorkerBase'
-            && (!class_exists($workerClass)
-                || !is_subclass_of($workerClass, '\Instasent\ResqueBundle\WorkerBase')
-            )
-        ) {
-            throw new \Exception(\sprintf('Worker class %s is not of the right kind', $workerClass));
-        }
-        $environment['WORKER_CLASS'] = $workerClass;
-
-        $blocking = trim($input->getOption('blocking')) !== '';
+        $blocking = \trim($input->getOption('blocking')) !== '';
         if ($blocking) {
             $environment['BLOCKING'] = 1;
         }
+
+        $environment['WORKER_CLASS'] = $input->getOption('worker');
 
         $environment['QUEUE'] = $input->getArgument('queues');
 
@@ -177,7 +169,7 @@ class StartWorkerCommand extends ContainerAwareCommand
      */
     final protected function getBaseEnvironment(ContainerInterface $container, InputInterface $input)
     {
-        if (version_compare(PHP_VERSION, '5.5.0') >= 0) {
+        if (\version_compare(PHP_VERSION, '5.5.0') >= 0) {
             // here to work around issues with pcntl and cli_set_process_title in PHP > 5.5
             $environment = $_SERVER;
 
@@ -210,7 +202,7 @@ class StartWorkerCommand extends ContainerAwareCommand
             $rootDir.'/bootstrap.php.cache',
         );
         foreach ($cacheFiles as $kernelFile) {
-            if (file_exists($kernelFile)) {
+            if (\file_exists($kernelFile)) {
                 $environment['APP_INCLUDE'] = $kernelFile;
             }
         }
@@ -220,7 +212,7 @@ class StartWorkerCommand extends ContainerAwareCommand
             $rootDir.'/../app/AppKernel.php',
         );
         foreach ($kernelFiles as $kernelFile) {
-            if (file_exists($kernelFile)) {
+            if (\file_exists($kernelFile)) {
                 $environment['APP_KERNEL'] = $kernelFile;
             }
         }
@@ -238,9 +230,9 @@ class StartWorkerCommand extends ContainerAwareCommand
      */
     final protected function getCommand(ContainerInterface $container, InputInterface $input)
     {
-        if (version_compare(PHP_VERSION, '5.4.0') >= 0) {
+        if (\version_compare(PHP_VERSION, '5.4.0') >= 0) {
             $php = PHP_BINARY;
-        } elseif (defined('PHP_WINDOWS_VERSION_BUILD')) {
+        } elseif (\defined('PHP_WINDOWS_VERSION_BUILD')) {
             $php = 'php';
         } else {
             $php = PHP_BINDIR.'/php';
@@ -250,7 +242,7 @@ class StartWorkerCommand extends ContainerAwareCommand
 
         $memoryLimit = (int) $input->getOption('memory-limit');
         if ($memoryLimit !== 0) {
-            $options[] = sprintf('-d memory_limit=%dM', $memoryLimit);
+            $options[] = \sprintf('-d memory_limit=%dM', $memoryLimit);
         }
 
         $binaryName = $this->getBinaryName();

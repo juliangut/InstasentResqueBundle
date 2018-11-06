@@ -35,7 +35,7 @@ class StopWorkerCommand extends ContainerAwareCommand
         /** @var \Instasent\ResqueBundle\Resque $resque */
         $resque = $this->getContainer()->get('instasent_resque.resque');
 
-        if (trim($input->getOption('all')) !== '') {
+        if (\trim($input->getOption('all')) !== '') {
             $workers = $resque->getWorkers();
         } else {
             $worker = $resque->getWorker($input->getArgument('id'));

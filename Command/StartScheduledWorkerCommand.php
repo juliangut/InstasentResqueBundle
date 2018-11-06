@@ -46,9 +46,9 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
             // In windows: When you pass an environment to CMD it replaces the old environment
             // That means we create a lot of problems with respect to user accounts and missing vars
             // this is a workaround where we add the vars to the existing environment.
-            if (defined('PHP_WINDOWS_VERSION_BUILD')) {
+            if (\defined('PHP_WINDOWS_VERSION_BUILD')) {
                 foreach ($environment as $var => $value) {
-                    putenv($var.'='.$value);
+                    \putenv($var.'='.$value);
                 }
 
                 $environment = null;
@@ -69,26 +69,26 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
 
         if (!$input->getOption('foreground')) {
             $pidFile = $container->get('kernel')->getCacheDir().'/instasent_resque_scheduledworker.pid';
-            if (file_exists($pidFile) && !$input->getOption('force')) {
+            if (\file_exists($pidFile) && !$input->getOption('force')) {
                 $ioStyle->error('PID file exists - use --force to override');
                 $ioStyle->newLine();
 
                 return 1;
             }
 
-            if (file_exists($pidFile)) {
-                unlink($pidFile);
+            if (\file_exists($pidFile)) {
+                \unlink($pidFile);
             }
 
             $process->run();
 
             $pid = \trim($process->getOutput());
-            file_put_contents($pidFile, $pid);
+            \file_put_contents($pidFile, $pid);
 
             if (!$input->getOption('quiet')) {
                 $ioStyle->text(\sprintf(
                     'Starting worker %s:%s:%s',
-                    function_exists('gethostname') ? gethostname() : php_uname('n'),
+                    \function_exists('gethostname') ? \gethostname() : \php_uname('n'),
                     $pid,
                     $input->getArgument('queues')
                 ));

@@ -78,20 +78,12 @@ class StartWorkerSingleCommand extends StartWorkerCommand
             $environment['LOG_CHANNEL'] = $logger;
         }
 
-        $workerClass = $input->getOption('worker');
-        if ($workerClass !== '\Instasent\ResqueBundle\WorkerSingle'
-            && (!class_exists($workerClass)
-                || !is_subclass_of($workerClass, '\Instasent\ResqueBundle\WorkerSingle')
-            )
-        ) {
-            throw new \Exception(\sprintf('Worker class %s is not of the right kind', $workerClass));
-        }
-        $environment['WORKER_CLASS'] = $workerClass;
-
-        $blocking = trim($input->getOption('blocking')) !== '';
+        $blocking = \trim($input->getOption('blocking')) !== '';
         if ($blocking) {
             $environment['BLOCKING'] = 1;
         }
+
+        $environment['WORKER_CLASS'] = $input->getOption('worker');
 
         $environment['QUEUE'] = $input->getArgument('queues');
 

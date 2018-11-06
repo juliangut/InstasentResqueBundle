@@ -33,19 +33,19 @@ class StopScheduledWorkerCommand extends ContainerAwareCommand
     protected function execute(InputInterface $input, OutputInterface $output)
     {
         $pidFile = $this->getContainer()->get('kernel')->getCacheDir().'/instasent_resque_scheduledworker.pid';
-        if (!file_exists($pidFile)) {
+        if (!\file_exists($pidFile)) {
             $output->writeln('No PID file found');
 
             return 1;
         }
 
-        $pid = file_get_contents($pidFile);
+        $pid = \file_get_contents($pidFile);
 
         $output->writeln('Killing process '.$pid);
 
         \posix_kill($pid, SIGTERM);
 
-        unlink($pidFile);
+        \unlink($pidFile);
 
         return 0;
     }
