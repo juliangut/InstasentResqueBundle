@@ -203,14 +203,25 @@ class StartWorkerCommand extends ContainerAwareCommand
 
         $environment['SYMFONY_ENV'] = $container->getParameter('kernel.environment');
 
-        $kernelDir = $container->getParameter('kernel.root_dir');
+        $rootDir = $container->getParameter('kernel.root_dir');
+
         $cacheFiles = array(
-            $kernelDir.'/bootstrap.php.cache',
-            $kernelDir.'/../var/bootstrap.php.cache',
+            $rootDir.'/../var/bootstrap.php.cache',
+            $rootDir.'/bootstrap.php.cache',
         );
-        foreach ($cacheFiles as $cacheFile) {
-            if (file_exists($cacheFile)) {
-                $environment['APP_INCLUDE'] = $cacheFile;
+        foreach ($cacheFiles as $kernelFile) {
+            if (file_exists($kernelFile)) {
+                $environment['APP_INCLUDE'] = $kernelFile;
+            }
+        }
+
+        $kernelFiles = array(
+            $rootDir.'/Kernel.php',
+            $rootDir.'/../app/AppKernel.php',
+        );
+        foreach ($kernelFiles as $kernelFile) {
+            if (file_exists($kernelFile)) {
+                $environment['APP_KERNEL'] = $kernelFile;
             }
         }
 

@@ -64,11 +64,8 @@ if (!empty($INTERVAL)) {
     $interval = $INTERVAL;
 }
 
-
-
 $kernel = null;
 
-$workerClass = 'Instasent\ResqueBundle\WorkerSingle';
 if (getenv('APP_KERNEL')) {
     $symfonyKernelFile = getenv('APP_KERNEL');
 
@@ -94,15 +91,6 @@ if (getenv('APP_KERNEL')) {
     if (getenv('LOG_CHANNEL')) {
         $logger = $kernel->getContainer()->get(getenv('LOG_CHANNEL'));
     }
-
-    if (getenv('WORKER_CLASS')) {
-        $workerClass = getenv('WORKER_CLASS');
-
-        if (!class_exists($workerClass) || !is_subclass_of($workerClass, 'Instasent\ResqueBundle\WorkerScheduler')) {
-            $logger->log(Psr\Log\LogLevel::ERROR, 'Worker {worker} is not of the right kind', array('worker' => $workerClass));
-            die();
-        }
-    }
 }
 
 $PREFIX = getenv('PREFIX');
@@ -111,10 +99,7 @@ if (!empty($PREFIX)) {
     Resque_Redis::prefix($PREFIX);
 }
 
-/* @var Instasent\ResqueBundle\WorkerScheduler $worker */
-$worker = $kernel !== null
-    ? $kernel->getContainer()->get($workerClass)
-    : new $workerClass(array());
+$worker = new \ResqueScheduler_Worker();
 $worker->logLevel = $logLevel;
 
 $PIDFILE = getenv('PIDFILE');

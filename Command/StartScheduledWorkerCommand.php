@@ -26,7 +26,6 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
             ->setDescription('Start a instasent scheduled resque worker')
             ->addOption('logging', 'l', InputOption::VALUE_OPTIONAL, 'Logging service')
             ->addOption('interval', 'i', InputOption::VALUE_REQUIRED, 'How often to check for new jobs across the queues', \Resque::DEFAULT_INTERVAL)
-            ->addOption('worker', 'w', InputOption::VALUE_OPTIONAL, 'Worker class', '\Instasent\ResqueBundle\WorkerScheduler')
             ->addOption('force', null, InputOption::VALUE_NONE, 'Force creation of a new worker if the PID file exists')
             ->addOption('foreground', 'f', InputOption::VALUE_NONE, 'Should the worker run in foreground')
             ->addOption('memory-limit', 'm', InputOption::VALUE_OPTIONAL, 'Force cli memory_limit (expressed in Mbytes)', 0);
@@ -147,16 +146,6 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
 
             $environment['LOG_CHANNEL'] = $logger;
         }
-
-        $workerClass = $input->getOption('worker');
-        if ($workerClass !== '\Instasent\ResqueBundle\WorkerScheduler'
-            && (!class_exists($workerClass)
-                || !is_subclass_of($workerClass, '\Instasent\ResqueBundle\WorkerScheduler')
-            )
-        ) {
-            throw new \Exception(\sprintf('Worker class %s is not of the right kind', $workerClass));
-        }
-        $environment['WORKER_CLASS'] = $workerClass;
 
         return $environment;
     }
