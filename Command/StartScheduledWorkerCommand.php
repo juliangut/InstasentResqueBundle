@@ -29,7 +29,7 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
             ->addOption('worker', 'w', InputOption::VALUE_OPTIONAL, 'Worker class', '\Instasent\ResqueBundle\WorkerScheduler')
             ->addOption('force', null, InputOption::VALUE_NONE, 'Force creation of a new worker if the PID file exists')
             ->addOption('foreground', 'f', InputOption::VALUE_NONE, 'Should the worker run in foreground')
-            ->addOption('memory-limit', 'm', InputOption::VALUE_REQUIRED, 'Force cli memory_limit (expressed in Mbytes)', 0);
+            ->addOption('memory-limit', 'm', InputOption::VALUE_OPTIONAL, 'Force cli memory_limit (expressed in Mbytes)', 0);
     }
 
     /**
@@ -157,8 +157,6 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
             throw new \Exception(\sprintf('Worker class %s is not of the right kind', $workerClass));
         }
         $environment['WORKER_CLASS'] = $workerClass;
-
-        $environment['QUEUE'] = $input->getArgument('queues');
 
         return $environment;
     }

@@ -32,7 +32,7 @@ class StartWorkerCommand extends ContainerAwareCommand
             ->addOption('worker', 'w', InputOption::VALUE_OPTIONAL, 'Worker class', '\Instasent\ResqueBundle\WorkerBase')
             ->addOption('blocking', 'b', InputOption::VALUE_OPTIONAL, 'Worker blocking')
             ->addOption('foreground', 'f', InputOption::VALUE_NONE, 'Should the worker run in foreground')
-            ->addOption('memory-limit', 'm', InputOption::VALUE_REQUIRED, 'Force cli memory_limit (expressed in Mbytes)', 0)
+            ->addOption('memory-limit', 'm', InputOption::VALUE_OPTIONAL, 'Force cli memory_limit (expressed in Mbytes)', 0)
             ->addArgument('queues', InputArgument::REQUIRED, 'Queue names (separate using comma)');
     }
 
