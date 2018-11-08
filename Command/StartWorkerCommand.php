@@ -73,7 +73,7 @@ class StartWorkerCommand extends ContainerAwareCommand
         $this->process = new Process($this->getCommand($container, $input), null, $environment, null, null);
 
         if (!$input->getOption('quiet')) {
-            $ioStyle->note(\sprintf('Starting worker %s', $process->getCommandLine()));
+            $ioStyle->note(\sprintf('Starting worker %s', $this->process->getCommandLine()));
             $ioStyle->newLine();
         }
 
@@ -82,7 +82,7 @@ class StartWorkerCommand extends ContainerAwareCommand
                 $ioStyle->text(\sprintf(
                     'Starting worker %s:%s:%s',
                     \function_exists('gethostname') ? \gethostname() : \php_uname('n'),
-                    \trim($process->getOutput()),
+                    \trim($this->process->getOutput()),
                     $input->getArgument('queues')
                 ));
             }
