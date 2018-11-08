@@ -19,6 +19,11 @@ class StartWorkerCommand extends ContainerAwareCommand
     const NAME = 'instasent:resque:worker-start';
 
     /**
+     * @var Process
+     */
+    protected $process;
+
+    /**
      * {@inheritdoc}
      */
     protected function configure()
@@ -65,7 +70,7 @@ class StartWorkerCommand extends ContainerAwareCommand
             return 1;
         }
 
-        $process = new Process($this->getCommand($container, $input), null, $environment, null, null);
+        $this->process = new Process($this->getCommand($container, $input), null, $environment, null, null);
 
         if (!$input->getOption('quiet')) {
             $ioStyle->note(\sprintf('Starting worker %s', $process->getCommandLine()));
@@ -82,18 +87,41 @@ class StartWorkerCommand extends ContainerAwareCommand
                 ));
             }
 
-            $process->run();
+            $this->process->run();
 
             return 0;
         }
 
-        $process->run(function ($type, $buffer) use ($ioStyle) {
+        $this->prepareSignaling();
+
+        $this->process->run(function ($type, $buffer) use ($ioStyle) {
             $ioStyle->text($buffer);
         });
 
         $ioStyle->newLine();
 
         return 0;
+    }
+
+    /**
+     * Prepare signaling.
+     */
+    final protected function prepareSignaling()
+    {
+        if (\function_exists('pcntl_signal')) {
+            \pcntl_signal(\SIGTERM, array(&$this, 'kill'));
+            \pcntl_signal(\SIGINT, array(&$this, 'kill'));
+        }
+    }
+
+    /**
+     * Kill process.
+     */
+    final public function kill()
+    {
+        if ($this->process !== null) {
+            $this->process->signal(\SIGKILL);
+        }
     }
 
     /**

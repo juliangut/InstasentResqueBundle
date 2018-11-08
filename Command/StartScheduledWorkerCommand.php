@@ -97,6 +97,8 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
             return 0;
         }
 
+        $this->prepareSignaling();
+
         $process->run(function ($type, $buffer) use ($ioStyle) {
             $ioStyle->text($buffer);
         });
