@@ -60,10 +60,10 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
             return 1;
         }
 
-        $this->process = new Process($this->getCommand($container, $input), null, $environment, null, null);
+        $process = new Process($this->getCommand($container, $input), null, $environment, null, null);
 
         if (!$input->getOption('quiet')) {
-            $ioStyle->note(\sprintf('Starting worker %s', $this->process->getCommandLine()));
+            $ioStyle->note(\sprintf('Starting worker %s', $process->getCommandLine()));
             $ioStyle->newLine();
         }
 
@@ -80,9 +80,9 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
                 \unlink($pidFile);
             }
 
-            $this->process->run();
+            $process->run();
 
-            $pid = \trim($this->process->getOutput());
+            $pid = \trim($process->getOutput());
             \file_put_contents($pidFile, $pid);
 
             if (!$input->getOption('quiet')) {
@@ -97,9 +97,9 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
             return 0;
         }
 
-        $this->prepareSignaling();
+        $this->registerSignalHandlers($ioStyle, $process);
 
-        $this->process->run(function ($type, $buffer) use ($ioStyle) {
+        $process->run(function ($type, $buffer) use ($ioStyle) {
             $ioStyle->text($buffer);
         });
 

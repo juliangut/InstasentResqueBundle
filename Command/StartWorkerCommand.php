@@ -11,17 +11,14 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 
+declare(ticks = 1);
+
 class StartWorkerCommand extends ContainerAwareCommand
 {
     /**
      * Command name.
      */
     const NAME = 'instasent:resque:worker-start';
-
-    /**
-     * @var Process
-     */
-    protected $process;
 
     /**
      * {@inheritdoc}
@@ -70,10 +67,10 @@ class StartWorkerCommand extends ContainerAwareCommand
             return 1;
         }
 
-        $this->process = new Process($this->getCommand($container, $input), null, $environment, null, null);
+        $process = new Process($this->getCommand($container, $input), null, $environment, null, null);
 
         if (!$input->getOption('quiet')) {
-            $ioStyle->note(\sprintf('Starting worker %s', $this->process->getCommandLine()));
+            $ioStyle->note(\sprintf('Starting worker %s', $process->getCommandLine()));
             $ioStyle->newLine();
         }
 
@@ -82,19 +79,19 @@ class StartWorkerCommand extends ContainerAwareCommand
                 $ioStyle->text(\sprintf(
                     'Starting worker %s:%s:%s',
                     \function_exists('gethostname') ? \gethostname() : \php_uname('n'),
-                    \trim($this->process->getOutput()),
+                    \trim($process->getOutput()),
                     $input->getArgument('queues')
                 ));
             }
 
-            $this->process->run();
+            $process->run();
 
             return 0;
         }
 
-        $this->prepareSignaling();
+        $this->registerSignalHandlers($ioStyle, $process);
 
-        $this->process->run(function ($type, $buffer) use ($ioStyle) {
+        $process->run(function ($type, $buffer) use ($ioStyle) {
             $ioStyle->text($buffer);
         });
 
@@ -106,22 +103,28 @@ class StartWorkerCommand extends ContainerAwareCommand
     /**
      * Prepare signaling.
      */
-    final protected function prepareSignaling()
+    final protected function registerSignalHandlers(SymfonyStyle $ioStyle, Process $process)
     {
-        if (\function_exists('pcntl_signal')) {
-            \pcntl_signal(\SIGTERM, array(&$this, 'kill'));
-            \pcntl_signal(\SIGINT, array(&$this, 'kill'));
-        }
-    }
+        $closeHandler = function ($signo) use ($ioStyle, $process) {
+            $environment = $process->getEnv();
+            $pidFile = $environment['PIDFILE'];
+            if (!\file_exists($pidFile)) {
+                $ioStyle->error(\sprintf('PID file %s does not exist', $pidFile));
 
-    /**
-     * Kill process.
-     */
-    final public function kill()
-    {
-        if ($this->process !== null) {
-            $this->process->signal(\SIGKILL);
-        }
+                return;
+            }
+
+            $process->signal($signo);
+
+            $pid = \file_get_contents($pidFile);
+            \posix_kill($pid, $signo);
+
+            \unlink($pidFile);
+        };
+
+        \pcntl_signal(\SIGTERM, $closeHandler);
+        \pcntl_signal(\SIGINT, $closeHandler);
+        \pcntl_signal(\SIGQUIT, $closeHandler);
     }
 
     /**
@@ -212,6 +215,9 @@ class StartWorkerCommand extends ContainerAwareCommand
         } else {
             $environment = array();
         }
+
+        $pidFile = $this->getContainer()->get('kernel')->getCacheDir().'/'.\uniqid('resque-worker-', true).'.pid';
+        $environment['PIDFILE'] = $pidFile;
 
         if (!$input->getOption('quiet')) {
             $environment['VERBOSE'] = 1;
