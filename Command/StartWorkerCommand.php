@@ -227,7 +227,9 @@ class StartWorkerCommand extends ContainerAwareCommand
             $environment['VVERBOSE'] = 1;
         }
 
-        $environment['SYMFONY_ENV'] = $container->getParameter('kernel.environment');
+        $environment['SYMFONY_ENV'] = \getenv('APP_ENV') !== false
+            ? getenv('APP_ENV')
+            : $container->getParameter('kernel.environment');
 
         $rootDir = $container->getParameter('kernel.root_dir');
 
