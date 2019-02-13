@@ -93,7 +93,7 @@ class WorkerBase extends \Resque_Worker
             $queues = array($queues);
         }
 
-        $this->queues = $queues;
+        $this->queues = \array_map('trim', $queues);
     }
 
     /**

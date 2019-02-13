@@ -139,53 +139,15 @@ class StartWorkerCommand extends ContainerAwareCommand
      */
     protected function getEnvironment(ContainerInterface $container, InputInterface $input)
     {
-        $environment = $this->getBaseEnvironment($container, $input);
+        $environment = $this->getRootEnvironment($container, $input);
+        $environment = $this->getResqueEnvironment($environment, $container, $input);
+        $environment = $this->getWorkerEnvironment($environment, $input);
 
         $count = (int) $input->getOption('count');
         if ($count < 1) {
             throw new \Exception('Workers count must be higher than 0');
         }
         $environment['COUNT'] = $count;
-
-        $interval = $input->getOption('interval');
-        if ($interval < 1) {
-            throw new \Exception('Workers interval must be higher than 0');
-        }
-        $environment['INTERVAL'] = $interval;
-
-        $prefix = $container->getParameter('instasent_resque.prefix');
-        if (!empty($prefix)) {
-            $environment['PREFIX'] = $prefix;
-        }
-
-        $redisHost = $container->getParameter('instasent_resque.resque.redis.host');
-        $redisPort = $container->getParameter('instasent_resque.resque.redis.port');
-        if (!empty($redisHost) && !empty($redisPort)) {
-            $environment['REDIS_BACKEND'] = $redisHost.':'.$redisPort;
-
-            $redisDatabase = $container->getParameter('instasent_resque.resque.redis.database');
-            if (!empty($redisDatabase)) {
-                $environment['REDIS_BACKEND_DB'] = $redisDatabase;
-            }
-        }
-
-        $logger = $input->getOption('logging');
-        if ($logger) {
-            if (!$container->has($logger)) {
-                throw new \Exception(\sprintf('Logger %s cannot be found', $logger));
-            }
-
-            $environment['LOG_CHANNEL'] = $logger;
-        }
-
-        $blocking = \trim($input->getOption('blocking')) !== '';
-        if ($blocking) {
-            $environment['BLOCKING'] = 1;
-        }
-
-        $environment['WORKER_CLASS'] = $input->getOption('worker');
-
-        $environment['QUEUE'] = $input->getArgument('queues');
 
         return $environment;
     }
@@ -196,9 +158,9 @@ class StartWorkerCommand extends ContainerAwareCommand
      * @param ContainerInterface $container
      * @param InputInterface     $input
      *
-     * @return mixed
+     * @return array
      */
-    final protected function getBaseEnvironment(ContainerInterface $container, InputInterface $input)
+    final protected function getRootEnvironment(ContainerInterface $container, InputInterface $input)
     {
         if (\version_compare(PHP_VERSION, '5.5.0') >= 0) {
             // here to work around issues with pcntl and cli_set_process_title in PHP > 5.5
@@ -240,6 +202,7 @@ class StartWorkerCommand extends ContainerAwareCommand
         foreach ($cacheFiles as $kernelFile) {
             if (\file_exists($kernelFile)) {
                 $environment['APP_INCLUDE'] = $kernelFile;
+                break;
             }
         }
 
@@ -250,8 +213,79 @@ class StartWorkerCommand extends ContainerAwareCommand
         foreach ($kernelFiles as $kernelFile) {
             if (\file_exists($kernelFile)) {
                 $environment['APP_KERNEL'] = $kernelFile;
+                break;
             }
         }
+
+        return $environment;
+    }
+
+    /**
+     * Get resque environment data.
+     *
+     * @param array              $environment
+     * @param ContainerInterface $container
+     * @param InputInterface     $input
+     *
+     * @return array
+     */
+    protected function getResqueEnvironment(
+        array $environment,
+        ContainerInterface $container,
+        InputInterface $input
+    ) {
+        $interval = $input->getOption('interval');
+        if ($interval < 1) {
+            throw new \Exception('Workers interval must be higher than 0');
+        }
+        $environment['INTERVAL'] = $interval;
+
+        $prefix = $container->getParameter('instasent_resque.prefix');
+        if (!empty($prefix)) {
+            $environment['PREFIX'] = $prefix;
+        }
+
+        $redisHost = $container->getParameter('instasent_resque.resque.redis.host');
+        $redisPort = $container->getParameter('instasent_resque.resque.redis.port');
+        if (!empty($redisHost) && !empty($redisPort)) {
+            $environment['REDIS_BACKEND'] = $redisHost.':'.$redisPort;
+
+            $redisDatabase = $container->getParameter('instasent_resque.resque.redis.database');
+            if (!empty($redisDatabase)) {
+                $environment['REDIS_BACKEND_DB'] = $redisDatabase;
+            }
+        }
+
+        $logger = $input->getOption('logging');
+        if ($logger) {
+            if (!$container->has($logger)) {
+                throw new \Exception(\sprintf('Logger %s cannot be found', $logger));
+            }
+
+            $environment['LOG_CHANNEL'] = $logger;
+        }
+
+        return $environment;
+    }
+
+    /**
+     * Get worker environment data.
+     *
+     * @param array          $environment
+     * @param InputInterface $input
+     *
+     * @return array
+     */
+    protected function getWorkerEnvironment(array $environment, InputInterface $input)
+    {
+        $blocking = \trim($input->getOption('blocking')) !== '';
+        if ($blocking) {
+            $environment['BLOCKING'] = 1;
+        }
+
+        $environment['WORKER_CLASS'] = $input->getOption('worker');
+
+        $environment['QUEUE'] = $input->getArgument('queues');
 
         return $environment;
     }

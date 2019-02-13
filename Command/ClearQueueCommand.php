@@ -22,8 +22,7 @@ class ClearQueueCommand extends ContainerAwareCommand
         $this
             ->setName(self::NAME)
             ->setDescription('Clear a Instasent queue')
-            ->addArgument('queue', InputArgument::REQUIRED, 'Queue name')
-        ;
+            ->addArgument('queue', InputArgument::REQUIRED, 'Queue names (separate using comma)');
     }
 
     /**
@@ -34,10 +33,12 @@ class ClearQueueCommand extends ContainerAwareCommand
         /** @var \Instasent\ResqueBundle\Resque $resque */
         $resque = $this->getContainer()->get('instasent_resque.resque');
 
-        $queue = $input->getArgument('queue');
-        $count = $resque->clearQueue($queue);
+        $queues = \explode(',', $input->getArgument('queue'));
+        foreach ($queues as $queue) {
+            $count = $resque->clearQueue($queue);
 
-        $output->writeln('Cleared queue '.$queue.' - removed '.$count.' entries');
+            $output->writeln('Cleared queue '.$queue.' - removed '.$count.' entries');
+        }
 
         return 0;
     }

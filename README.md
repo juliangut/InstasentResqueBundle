@@ -190,7 +190,9 @@ You can pass a monolog channel to write your logs, see example in supervisor con
 
 ## Running a worker without forking
 
-Sometimes intensive tasks may lose performance with forking mode. We have added a bin/resque-single binary, you can pass kernel file to be loaded only once at start. Be carefull cause if this Worker fails, then you need to restart manually this worker. We recommend to use supervisor to control this, and superlance with memory plugin to restart worker when hits some memory treshold. Be careful too with your code, shared variables, services instances... etc.
+Sometimes intensive tasks may lose performance with forking mode. We have added a bin/resque-single binary, you can pass kernel file to be loaded only once at start. Be careful cause if this Worker fails, then you need to restart it manually. We recommend using supervisor to control this behaviour, and superlance to restart worker when memory hits some threshold.
+
+Pay special attention to your code, shared variables, service instances, etc.
 
 ## Adding a delayed job to a queue
 
@@ -228,12 +230,12 @@ them into the originally specified queue.
 
 Stop it later with `app/console instasent:resque:scheduledworker-stop`.
 
-Note that when run in background mode it creates a PID file in 'cache/<environment>/instasent_resque_scheduledworker.pid'. If you
+Note that when run in background mode (default) it creates a PID file in 'cache/<environment>/instasent_resque_scheduledworker.pid'. If you
 clear your cache while the scheduledworker is running you won't be able to stop it with the `scheduledworker-stop` command.
 
 Alternatively, you can run the scheduledworker in the foreground with the `--foreground` option.
 
-Note also you should only ever have one scheduledworker running, and if the PID file already exists you will have to use
+Note also you should only ever have one scheduledworker running, and if the PID file already exists you will have to use 
 the `--force` option to start a scheduledworker.
 
 ## Manage production workers with supervisord
@@ -241,7 +243,7 @@ the `--force` option to start a scheduledworker.
 It's probably best to use supervisord (http://supervisord.org) to run the workers in production, rather than re-invent job
 spawning, monitoring, stopping and restarting.
 
-Here's a sample conf file
+#### Sample conf files
 
 ```ini
 [program:myapp_phpresque_default]
@@ -273,6 +275,33 @@ programs=myapp_phpresque_default,myapp_phpresque_scheduledworker
 ```
 
 (If you use a custom Resque prefix, add an extra environment variable: PREFIX='my-resque-prefix')
+
+```ini
+[program:myapp_phpresque_default]
+command = /usr/bin/php /home/sites/myapp/prod/current/bin/console instasent:resque:worker-start --verbose default
+user = myusername
+stopsignal=QUIT
+
+[program:myapp_phpresque_default_single_worker]
+command = /usr/bin/php /home/sites/myapp/prod/current/bin/console instasent:resque:worker-single-start --verbose default
+user = myusername
+stopsignal=QUIT
+
+[program:myapp_phpresque_scheduledworker]
+command = /usr/bin/php /home/sites/myapp/prod/current/bin/console instasent:resque:scheduledworker-start --verbose
+user = myusername
+stopsignal=QUIT
+
+[program:myapp_phpresque_default_single_worker_logger]
+command = /usr/bin/php /home/sites/myapp/prod/current/bin/console instasent:resque:worker-single-start --logging=monolog.logger.custom --verbose default
+user = myusername
+stopsignal=QUIT
+
+[group:myapp]
+programs=myapp_phpresque_default,myapp_phpresque_scheduledworker
+```
+
+When using Symfony Console commands review bundle configuration
 
 Then in Capifony you can do
 

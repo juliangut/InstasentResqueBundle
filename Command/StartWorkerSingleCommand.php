@@ -32,58 +32,13 @@ class StartWorkerSingleCommand extends StartWorkerCommand
     }
 
     /**
-     * Get environment data.
-     *
-     * @param ContainerInterface $container
-     * @param InputInterface     $input
-     *
-     * @throws \Exception
-     *
-     * @return array
+     * {@inheritDoc}
      */
     protected function getEnvironment(ContainerInterface $container, InputInterface $input)
     {
-        $environment = $this->getBaseEnvironment($container, $input);
-
-        $interval = $input->getOption('interval');
-        if ($interval < 1) {
-            throw new \Exception('Workers interval must be higher than 0');
-        }
-        $environment['INTERVAL'] = $interval;
-
-        $prefix = $container->getParameter('instasent_resque.prefix');
-        if (!empty($prefix)) {
-            $environment['PREFIX'] = $prefix;
-        }
-
-        $redisHost = $container->getParameter('instasent_resque.resque.redis.host');
-        $redisPort = $container->getParameter('instasent_resque.resque.redis.port');
-        if (!empty($redisHost) && !empty($redisPort)) {
-            $environment['REDIS_BACKEND'] = $redisHost.':'.$redisPort;
-
-            $redisDatabase = $container->getParameter('instasent_resque.resque.redis.database');
-            if (!empty($redisDatabase)) {
-                $environment['REDIS_BACKEND_DB'] = $redisDatabase;
-            }
-        }
-
-        $logger = $input->getOption('logging');
-        if ($logger) {
-            if (!$container->has($logger)) {
-                throw new \Exception(\sprintf('Logger %s cannot be found', $logger));
-            }
-
-            $environment['LOG_CHANNEL'] = $logger;
-        }
-
-        $blocking = \trim($input->getOption('blocking')) !== '';
-        if ($blocking) {
-            $environment['BLOCKING'] = 1;
-        }
-
-        $environment['WORKER_CLASS'] = $input->getOption('worker');
-
-        $environment['QUEUE'] = $input->getArgument('queues');
+        $environment = $this->getRootEnvironment($container, $input);
+        $environment = $this->getResqueEnvironment($environment, $container, $input);
+        $environment = $this->getWorkerEnvironment($environment, $input);
 
         return $environment;
     }
