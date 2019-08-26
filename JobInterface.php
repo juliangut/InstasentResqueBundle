@@ -8,13 +8,13 @@ interface JobInterface
 
     public function getQueue();
 
-    public function getArgs();
+    public function getArguments();
 
-    public function hasArg($arg);
+    public function hasArgument($arg);
 
-    public function getArg($arg);
+    public function getArgument($arg);
 
-    public function setArg($arg, $value);
+    public function setArgument($arg, $value);
 
     public function perform();
 

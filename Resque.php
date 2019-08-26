@@ -71,7 +71,7 @@ class Resque
 
         $this->attachRetryStrategy($job);
 
-        $result = \Resque::enqueue($job->getQueue(), \get_class($job), $job->getArgs(), $trackStatus);
+        $result = \Resque::enqueue($job->getQueue(), \get_class($job), $job->getArguments(), $trackStatus);
 
         if ($trackStatus) {
             return new \Resque_Job_Status($result);
@@ -87,7 +87,7 @@ class Resque
 
         foreach ($jobs as $j) {
             if ($j->job->payload['class'] == get_class($job)) {
-                if (count(array_intersect($j->args, $job->getArgs())) == count($job->getArgs())) {
+                if (count(array_intersect($j->args, $job->getArguments())) == count($job->getArguments())) {
                     return ($trackStatus) ? $j->job->payload['id'] : null;
                 }
             }
@@ -104,7 +104,7 @@ class Resque
 
         $this->attachRetryStrategy($job);
 
-        \ResqueScheduler::enqueueAt($at, $job->getQueue(), \get_class($job), $job->getArgs());
+        \ResqueScheduler::enqueueAt($at, $job->getQueue(), \get_class($job), $job->getArguments());
 
         return;
     }
@@ -117,7 +117,7 @@ class Resque
 
         $this->attachRetryStrategy($job);
 
-        \ResqueScheduler::enqueueIn($in, $job->getQueue(), \get_class($job), $job->getArgs());
+        \ResqueScheduler::enqueueIn($in, $job->getQueue(), \get_class($job), $job->getArguments());
 
         return;
     }
@@ -130,7 +130,7 @@ class Resque
 
         $this->attachRetryStrategy($job);
 
-        return \ResqueScheduler::removeDelayed($job->getQueue(), \get_class($job), $job->getArgs());
+        return \ResqueScheduler::removeDelayed($job->getQueue(), \get_class($job), $job->getArguments());
     }
 
     public function removeFromTimestamp($at, JobInterface $job)
@@ -141,7 +141,7 @@ class Resque
 
         $this->attachRetryStrategy($job);
 
-        return \ResqueScheduler::removeDelayedJobFromTimestamp($at, $job->getQueue(), \get_class($job), $job->getArgs());
+        return \ResqueScheduler::removeDelayedJobFromTimestamp($at, $job->getQueue(), \get_class($job), $job->getArguments());
     }
 
     public function getQueues()
@@ -303,9 +303,9 @@ class Resque
         $class = get_class($job);
 
         if (isset($this->jobRetryStrategy[$class]) && count($this->jobRetryStrategy[$class])) {
-            $job->setArg('instasent_resque.retry_strategy', $this->jobRetryStrategy[$class]);
+            $job->setArgument('instasent_resque.retry_strategy', $this->jobRetryStrategy[$class]);
         } elseif (count($this->globalRetryStrategy)) {
-            $job->setArg('instasent_resque.retry_strategy', $this->globalRetryStrategy);
+            $job->setArgument('instasent_resque.retry_strategy', $this->globalRetryStrategy);
         }
     }
 }

@@ -29,22 +29,22 @@ abstract class Job implements JobInterface
         return $this->queue;
     }
 
-    public function getArgs()
+    public function getArguments()
     {
         return $this->args;
     }
 
-    public function hasArg($arg)
+    public function hasArgument($arg)
     {
         return isset($this->args[$arg]);
     }
 
-    public function getArg($arg)
+    public function getArgument($arg)
     {
         return isset($this->args[$arg]) ? $this->args[$arg] : null;
     }
 
-    public function setArg($arg, $value) {
+    public function setArgument($arg, $value) {
         $this->args[$arg] = $value;
     }
 
