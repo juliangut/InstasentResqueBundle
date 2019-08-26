@@ -2,7 +2,7 @@
 
 namespace Instasent\ResqueBundle;
 
-abstract class Job
+abstract class Job implements JobInterface
 {
     /**
      * @var \Resque_Job
@@ -24,8 +24,28 @@ abstract class Job
         return \get_class($this);
     }
 
-    public function setUp()
+    public function getQueue()
     {
+        return $this->queue;
+    }
+
+    public function getArgs()
+    {
+        return $this->args;
+    }
+
+    public function hasArg($arg)
+    {
+        return isset($this->args[$arg]);
+    }
+
+    public function getArg($arg)
+    {
+        return isset($this->args[$arg]) ? $this->args[$arg] : null;
+    }
+
+    public function setArg($arg, $value) {
+        $this->args[$arg] = $value;
     }
 
     public function perform()
@@ -35,7 +55,13 @@ abstract class Job
 
     abstract public function run($args);
 
+    public function setUp()
+    {
+        // noop
+    }
+
     public function tearDown()
     {
+        // noop
     }
 }
