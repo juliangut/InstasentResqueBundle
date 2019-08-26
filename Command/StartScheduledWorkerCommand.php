@@ -109,45 +109,15 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
     }
 
     /**
-     * {@inheritdoc}
+     * {@inheritDoc}
      */
     protected function getEnvironment(ContainerInterface $container, InputInterface $input)
     {
-        $environment = $this->getBaseEnvironment($container, $input);
-
-        $interval = $input->getOption('interval');
-        if ($interval < 1) {
-            throw new \Exception('Workers interval must be higher than 0');
-        }
-        $environment['INTERVAL'] = $interval;
+        $environment = $this->getRootEnvironment($container, $input);
+        $environment = $this->getResqueEnvironment($environment, $container, $input);
 
         $vendorDir = $container->getParameter('instasent_resque.resque.vendor_dir');
         $environment['RESQUE_PHP'] = $vendorDir.'/chrisboulton/php-resque/lib/Resque.php';
-
-        $prefix = $container->getParameter('instasent_resque.prefix');
-        if (!empty($prefix)) {
-            $environment['PREFIX'] = $prefix;
-        }
-
-        $redisHost = $container->getParameter('instasent_resque.resque.redis.host');
-        $redisPort = $container->getParameter('instasent_resque.resque.redis.port');
-        if (!empty($redisHost) && !empty($redisPort)) {
-            $environment['REDIS_BACKEND'] = $redisHost.':'.$redisPort;
-
-            $redisDatabase = $container->getParameter('instasent_resque.resque.redis.database');
-            if (!empty($redisDatabase)) {
-                $environment['REDIS_BACKEND_DB'] = $redisDatabase;
-            }
-        }
-
-        $logger = $input->getOption('logging');
-        if ($logger) {
-            if (!$container->has($logger)) {
-                throw new \Exception(\sprintf('Logger %s cannot be found', $logger));
-            }
-
-            $environment['LOG_CHANNEL'] = $logger;
-        }
 
         return $environment;
     }

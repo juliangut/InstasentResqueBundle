@@ -139,7 +139,9 @@ class StartWorkerCommand extends ContainerAwareCommand
      */
     protected function getEnvironment(ContainerInterface $container, InputInterface $input)
     {
-        $environment = $this->getBaseEnvironment($container, $input);
+        $environment = $this->getRootEnvironment($container, $input);
+        $environment = $this->getResqueEnvironment($environment, $container, $input);
+        $environment = $this->getWorkerEnvironment($environment, $input);
 
         $count = (int) $input->getOption('count');
         if ($count < 1) {
@@ -147,6 +149,91 @@ class StartWorkerCommand extends ContainerAwareCommand
         }
         $environment['COUNT'] = $count;
 
+        return $environment;
+    }
+
+    /**
+     * Get basic environment data.
+     *
+     * @param ContainerInterface $container
+     * @param InputInterface     $input
+     *
+     * @return array
+     */
+    final protected function getRootEnvironment(ContainerInterface $container, InputInterface $input)
+    {
+        if (\version_compare(PHP_VERSION, '5.5.0') >= 0) {
+            // here to work around issues with pcntl and cli_set_process_title in PHP > 5.5
+            $environment = $_SERVER;
+
+            unset(
+                $environment['_'],
+                $environment['PHP_SELF'],
+                $environment['SCRIPT_NAME'],
+                $environment['SCRIPT_FILENAME'],
+                $environment['PATH_TRANSLATED'],
+                $environment['argv']
+            );
+        } else {
+            $environment = array();
+        }
+
+        $pidFile = $this->getContainer()->get('kernel')->getCacheDir().'/'.\uniqid('resque-worker-', true).'.pid';
+        $environment['PIDFILE'] = $pidFile;
+
+        if (!$input->getOption('quiet')) {
+            $environment['VERBOSE'] = 1;
+        }
+
+        if ($input->getOption('verbose')) {
+            $environment['VVERBOSE'] = 1;
+        }
+
+        $environment['SYMFONY_ENV'] = \getenv('APP_ENV') !== false
+            ? getenv('APP_ENV')
+            : $container->getParameter('kernel.environment');
+
+        $rootDir = $container->getParameter('kernel.root_dir');
+
+        $cacheFiles = array(
+            $rootDir.'/../var/bootstrap.php.cache',
+            $rootDir.'/bootstrap.php.cache',
+        );
+        foreach ($cacheFiles as $kernelFile) {
+            if (\file_exists($kernelFile)) {
+                $environment['APP_INCLUDE'] = $kernelFile;
+                break;
+            }
+        }
+
+        $kernelFiles = array(
+            $rootDir.'/Kernel.php',
+            $rootDir.'/../app/AppKernel.php',
+        );
+        foreach ($kernelFiles as $kernelFile) {
+            if (\file_exists($kernelFile)) {
+                $environment['APP_KERNEL'] = $kernelFile;
+                break;
+            }
+        }
+
+        return $environment;
+    }
+
+    /**
+     * Get resque environment data.
+     *
+     * @param array              $environment
+     * @param ContainerInterface $container
+     * @param InputInterface     $input
+     *
+     * @return array
+     */
+    protected function getResqueEnvironment(
+        array $environment,
+        ContainerInterface $container,
+        InputInterface $input
+    ) {
         $interval = $input->getOption('interval');
         if ($interval < 1) {
             throw new \Exception('Workers interval must be higher than 0');
@@ -178,6 +265,19 @@ class StartWorkerCommand extends ContainerAwareCommand
             $environment['LOG_CHANNEL'] = $logger;
         }
 
+        return $environment;
+    }
+
+    /**
+     * Get worker environment data.
+     *
+     * @param array          $environment
+     * @param InputInterface $input
+     *
+     * @return array
+     */
+    protected function getWorkerEnvironment(array $environment, InputInterface $input)
+    {
         $blocking = \trim($input->getOption('blocking')) !== '';
         if ($blocking) {
             $environment['BLOCKING'] = 1;
@@ -186,70 +286,6 @@ class StartWorkerCommand extends ContainerAwareCommand
         $environment['WORKER_CLASS'] = $input->getOption('worker');
 
         $environment['QUEUE'] = $input->getArgument('queues');
-
-        return $environment;
-    }
-
-    /**
-     * Get basic environment data.
-     *
-     * @param ContainerInterface $container
-     * @param InputInterface     $input
-     *
-     * @return mixed
-     */
-    final protected function getBaseEnvironment(ContainerInterface $container, InputInterface $input)
-    {
-        if (\version_compare(PHP_VERSION, '5.5.0') >= 0) {
-            // here to work around issues with pcntl and cli_set_process_title in PHP > 5.5
-            $environment = $_SERVER;
-
-            unset(
-                $environment['_'],
-                $environment['PHP_SELF'],
-                $environment['SCRIPT_NAME'],
-                $environment['SCRIPT_FILENAME'],
-                $environment['PATH_TRANSLATED'],
-                $environment['argv']
-            );
-        } else {
-            $environment = array();
-        }
-
-        $pidFile = $this->getContainer()->get('kernel')->getCacheDir().'/'.\uniqid('resque-worker-', true).'.pid';
-        $environment['PIDFILE'] = $pidFile;
-
-        if (!$input->getOption('quiet')) {
-            $environment['VERBOSE'] = 1;
-        }
-
-        if ($input->getOption('verbose')) {
-            $environment['VVERBOSE'] = 1;
-        }
-
-        $environment['SYMFONY_ENV'] = $container->getParameter('kernel.environment');
-
-        $rootDir = $container->getParameter('kernel.root_dir');
-
-        $cacheFiles = array(
-            $rootDir.'/../var/bootstrap.php.cache',
-            $rootDir.'/bootstrap.php.cache',
-        );
-        foreach ($cacheFiles as $kernelFile) {
-            if (\file_exists($kernelFile)) {
-                $environment['APP_INCLUDE'] = $kernelFile;
-            }
-        }
-
-        $kernelFiles = array(
-            $rootDir.'/Kernel.php',
-            $rootDir.'/../app/AppKernel.php',
-        );
-        foreach ($kernelFiles as $kernelFile) {
-            if (\file_exists($kernelFile)) {
-                $environment['APP_KERNEL'] = $kernelFile;
-            }
-        }
 
         return $environment;
     }
