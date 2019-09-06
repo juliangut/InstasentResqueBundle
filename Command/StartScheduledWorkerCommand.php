@@ -28,7 +28,7 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
             ->addOption('interval', 'i', InputOption::VALUE_REQUIRED, 'How often to check for new jobs across the queues', \Resque::DEFAULT_INTERVAL)
             ->addOption('force', null, InputOption::VALUE_NONE, 'Force creation of a new worker if the PID file exists')
             ->addOption('foreground', 'f', InputOption::VALUE_NONE, 'Should the worker run in foreground')
-            ->addOption('no-debug', 'm', InputOption::VALUE_OPTIONAL, 'Do not show debug information')
+            ->addOption('no-debug', 'n', InputOption::VALUE_OPTIONAL, 'Do not show debug information')
             ->addOption('memory-limit', 'm', InputOption::VALUE_OPTIONAL, 'Force cli memory_limit (expressed in Mbytes)', 0);
     }
 
