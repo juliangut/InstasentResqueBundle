@@ -28,7 +28,7 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
             ->addOption('interval', 'i', InputOption::VALUE_REQUIRED, 'How often to check for new jobs across the queues', \Resque::DEFAULT_INTERVAL)
             ->addOption('force', null, InputOption::VALUE_NONE, 'Force creation of a new worker if the PID file exists')
             ->addOption('foreground', 'f', InputOption::VALUE_NONE, 'Should the worker run in foreground')
-            ->addOption('no-debug', null, InputOption::VALUE_OPTIONAL, 'Do not show debug information')
+            ->addOption('hide-debug', null, InputOption::VALUE_OPTIONAL, 'Do not show debug information')
             ->addOption('memory-limit', 'm', InputOption::VALUE_OPTIONAL, 'Force cli memory_limit (expressed in Mbytes)', 0);
     }
 
@@ -63,7 +63,7 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
 
         $process = new Process($this->getCommand($container, $input), null, $environment, null, null);
 
-        if (!$input->getOption('no-debug')) {
+        if (!$input->getOption('hide-debug')) {
             $ioStyle->note(\sprintf('Starting worker %s', $process->getCommandLine()));
             $ioStyle->newLine();
         }
@@ -86,7 +86,7 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
             $pid = \trim($process->getOutput());
             \file_put_contents($pidFile, $pid);
 
-            if (!$input->getOption('no-debug')) {
+            if (!$input->getOption('hide-debug')) {
                 $ioStyle->text(\sprintf(
                     'Starting worker %s:%s:%s',
                     \function_exists('gethostname') ? \gethostname() : \php_uname('n'),

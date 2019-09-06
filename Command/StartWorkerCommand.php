@@ -34,7 +34,7 @@ class StartWorkerCommand extends ContainerAwareCommand
             ->addOption('worker', 'w', InputOption::VALUE_OPTIONAL, 'Worker class', '\Instasent\ResqueBundle\WorkerBase')
             ->addOption('blocking', 'b', InputOption::VALUE_OPTIONAL, 'Worker blocking')
             ->addOption('foreground', 'f', InputOption::VALUE_NONE, 'Should the worker run in foreground')
-            ->addOption('no-debug', null, InputOption::VALUE_OPTIONAL, 'Do not show debug information')
+            ->addOption('hide-debug', null, InputOption::VALUE_OPTIONAL, 'Do not show debug information')
             ->addOption('memory-limit', 'm', InputOption::VALUE_OPTIONAL, 'Force cli memory_limit (expressed in Mbytes)', 0)
             ->addArgument('queues', InputArgument::REQUIRED, 'Queue names (separate using comma)');
     }
@@ -70,13 +70,13 @@ class StartWorkerCommand extends ContainerAwareCommand
 
         $process = new Process($this->getCommand($container, $input), null, $environment, null, null);
 
-        if (!$input->getOption('no-debug')) {
+        if (!$input->getOption('hide-debug')) {
             $ioStyle->note(\sprintf('Starting worker %s', $process->getCommandLine()));
             $ioStyle->newLine();
         }
 
         if (!$input->getOption('foreground')) {
-            if (!$input->getOption('no-debug')) {
+            if (!$input->getOption('hide-debug')) {
                 $ioStyle->text(\sprintf(
                     'Starting worker %s:%s:%s',
                     \function_exists('gethostname') ? \gethostname() : \php_uname('n'),
@@ -182,7 +182,7 @@ class StartWorkerCommand extends ContainerAwareCommand
         $pidFile = $this->getContainer()->get('kernel')->getCacheDir().'/'.\uniqid('resque-worker-', true).'.pid';
         $environment['PIDFILE'] = $pidFile;
 
-        if (!$input->getOption('no-debug')) {
+        if (!$input->getOption('hide-debug')) {
             $environment['VERBOSE'] = 1;
         }
 
