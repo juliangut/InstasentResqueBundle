@@ -178,7 +178,7 @@ if ($count > 1) {
             $worker->setQueues($queues);
             $worker->setLogger($logger);
 
-            $logger->log(Psr\Log\LogLevel::NOTICE, 'Starting worker {worker} ({worker_class})', array(
+            $logger->log(Psr\Log\LogLevel::INFO, 'Starting worker {worker} ({worker_class})', array(
                 'worker' => $worker,
                 'worker_class' => $workerClass,
             ));
@@ -204,7 +204,7 @@ if ($count > 1) {
         }
     }
 
-    $logger->log(Psr\Log\LogLevel::NOTICE, 'Starting worker {worker} ({worker_class})', array(
+    $logger->log(Psr\Log\LogLevel::INFO, 'Starting worker {worker} ({worker_class})', array(
             'worker' => $worker,
             'worker_class' => $workerClass,
     ));

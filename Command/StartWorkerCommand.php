@@ -63,7 +63,6 @@ class StartWorkerCommand extends ContainerAwareCommand
             }
         } catch (\Exception $exception) {
             $ioStyle->error($exception->getMessage());
-            $ioStyle->newLine();
 
             return 1;
         }
@@ -78,7 +77,6 @@ class StartWorkerCommand extends ContainerAwareCommand
 
         if (!$input->getOption('hide-debug')) {
             $ioStyle->note(\sprintf('Starting worker %s', $commandLine));
-            $ioStyle->newLine();
         }
 
         if (!$input->getOption('foreground')) {
@@ -101,8 +99,6 @@ class StartWorkerCommand extends ContainerAwareCommand
         $process->run(function ($type, $buffer) use ($ioStyle) {
             $ioStyle->text($buffer);
         });
-
-        $ioStyle->newLine();
 
         return 0;
     }

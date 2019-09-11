@@ -56,23 +56,26 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
             }
         } catch (\Exception $exception) {
             $ioStyle->error($exception->getMessage());
-            $ioStyle->newLine();
 
             return 1;
         }
 
-        $process = new Process($this->getCommand($container, $input), null, $environment, null, null);
+        $commandLine = $this->getCommand($container, $input);
+
+        if (\method_exists(Process::class, 'fromShellCommandline')) {
+            $process = Process::fromShellCommandline($commandLine, null, $environment, null, null);
+        } else {
+            $process = new Process($commandLine, null, $environment, null, null);
+        }
 
         if (!$input->getOption('hide-debug')) {
-            $ioStyle->note(\sprintf('Starting worker %s', $process->getCommandLine()));
-            $ioStyle->newLine();
+            $ioStyle->note(\sprintf('Starting worker %s', $commandLine));
         }
 
         if (!$input->getOption('foreground')) {
             $pidFile = $container->get('kernel')->getCacheDir().'/instasent_resque_scheduledworker.pid';
             if (\file_exists($pidFile) && !$input->getOption('force')) {
                 $ioStyle->error('PID file exists - use --force to override');
-                $ioStyle->newLine();
 
                 return 1;
             }
@@ -103,8 +106,6 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
         $process->run(function ($type, $buffer) use ($ioStyle) {
             $ioStyle->text($buffer);
         });
-
-        $ioStyle->newLine();
 
         return 0;
     }

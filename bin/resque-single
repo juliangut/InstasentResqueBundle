@@ -166,7 +166,7 @@ if ($PIDFILE) {
     }
 }
 
-$logger->log(Psr\Log\LogLevel::NOTICE, 'Starting worker {worker} ({worker_class})', array(
+$logger->log(Psr\Log\LogLevel::INFO, 'Starting worker {worker} ({worker_class})', array(
     'worker' => $worker,
     'worker_class' => $workerClass,
 ));
