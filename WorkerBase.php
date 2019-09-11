@@ -208,24 +208,25 @@ class WorkerBase extends \Resque_Worker
                 continue;
             }
 
-            $this->logger->log(LogLevel::NOTICE, 'Starting work on {job}', array('job' => $job));
+            $this->logger->log(LogLevel::INFO, 'Starting work on {job}', array('job' => $job));
             \Resque_Event::trigger('beforeFork', $job);
             $this->workingOn($job);
 
             $this->child = \Resque::fork();
 
-            // Forked and we're the child. Run the job.
             if ($this->child === 0 || $this->child === false) {
+                // Forked and we're the child. Run the job.
                 $status = 'Processing ' . $job->queue . ' since ' . strftime('%F %T');
                 $this->updateProcLine($status);
                 $this->logger->log(LogLevel::INFO, $status);
                 $this->perform($job);
+
                 if ($this->child === 0) {
                     exit(0);
                 }
             }
 
-            if($this->child > 0) {
+            if ($this->child > 0) {
                 // Parent process, sit and wait
                 $status = 'Forked ' . $this->child . ' at ' . strftime('%F %T');
                 $this->updateProcLine($status);
@@ -234,10 +235,9 @@ class WorkerBase extends \Resque_Worker
                 // Wait until the child process finishes before continuing
                 pcntl_wait($status);
                 $exitStatus = pcntl_wexitstatus($status);
-                if($exitStatus !== 0) {
-                    $job->fail(new \Resque_Job_DirtyExitException(
-                        'Job exited with exit code ' . $exitStatus
-                    ));
+
+                if ($exitStatus !== 0) {
+                    $job->fail(new \Resque_Job_DirtyExitException('Job exited with exit code ' . $exitStatus));
                 }
             }
 
@@ -258,15 +258,30 @@ class WorkerBase extends \Resque_Worker
         try {
             \Resque_Event::trigger('afterFork', $job);
             $job->perform();
-        }
-        catch(Exception $e) {
+        } catch (\Error $e) {
+            $exception = new \ErrorException(
+                $e->getMessage(),
+                $e->getCode(),
+                1,
+                $e->getFile(),
+                $e->getLine()
+            );
+
+            $this->logger->log(
+                LogLevel::CRITICAL,
+                '{job} has failed {stack}',
+                array('job' => $job, 'stack' => $exception)
+            );
+            $job->fail($exception);
+            return;
+        } catch(\Exception $e) {
             $this->logger->log(LogLevel::CRITICAL, '{job} has failed {stack}', array('job' => $job, 'stack' => $e));
             $job->fail($e);
             return;
         }
 
         $job->updateStatus(\Resque_Job_Status::STATUS_COMPLETE);
-        $this->logger->log(LogLevel::NOTICE, '{job} has finished', array('job' => $job));
+        $this->logger->log(LogLevel::INFO, '{job} has finished', array('job' => $job));
     }
 
     /**

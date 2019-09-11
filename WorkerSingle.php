@@ -208,7 +208,7 @@ class WorkerSingle extends \Resque_Worker
                 continue;
             }
 
-            $this->logger->log(LogLevel::NOTICE, 'Starting work on {job}', array('job' => $job));
+            $this->logger->log(LogLevel::INFO, 'Starting work on {job}', array('job' => $job));
             $this->workingOn($job);
 
             $this->perform($job);
@@ -238,7 +238,11 @@ class WorkerSingle extends \Resque_Worker
                 $e->getLine()
             );
 
-            $this->logger->log(LogLevel::CRITICAL, '{job} has failed {stack}', array('job' => $job, 'stack' => $exception));
+            $this->logger->log(
+                LogLevel::CRITICAL,
+                '{job} has failed {stack}',
+                array('job' => $job, 'stack' => $exception)
+            );
             $job->fail($exception);
             return;
         } catch(\Exception $e) {
@@ -248,7 +252,7 @@ class WorkerSingle extends \Resque_Worker
         }
 
         $job->updateStatus(\Resque_Job_Status::STATUS_COMPLETE);
-        $this->logger->log(LogLevel::NOTICE, '{job} has finished', array('job' => $job));
+        $this->logger->log(LogLevel::INFO, '{job} has finished', array('job' => $job));
     }
 
     /**
