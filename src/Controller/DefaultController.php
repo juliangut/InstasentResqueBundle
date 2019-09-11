@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Instasent\ResqueBundle\Controller;
 
 use Symfony\Bundle\FrameworkBundle\Controller\Controller;
@@ -28,14 +30,14 @@ class DefaultController extends Controller
         $jobs = $queue->getJobs($start, $count);
 
         if (!$showingAll) {
-            $jobs = array_reverse($jobs);
+            $jobs = \array_reverse($jobs);
         }
 
         return $this->render(
             'InstasentResqueBundle:Default:queue_show.html.twig',
             [
-                'queue'      => $queue,
-                'jobs'       => $jobs,
+                'queue' => $queue,
+                'jobs' => $jobs,
                 'showingAll' => $showingAll,
             ]
         );
@@ -48,13 +50,13 @@ class DefaultController extends Controller
         $jobs = $this->getResque()->getFailedJobs($start, $count);
 
         if (!$showingAll) {
-            $jobs = array_reverse($jobs);
+            $jobs = \array_reverse($jobs);
         }
 
         return $this->render(
             'InstasentResqueBundle:Default:failed_list.html.twig',
             [
-                'jobs'       => $jobs,
+                'jobs' => $jobs,
                 'showingAll' => $showingAll,
             ]
         );
@@ -76,14 +78,14 @@ class DefaultController extends Controller
 
         // we don't want to enable the twig debug extension for this...
         foreach ($this->getResque()->getJobsForTimestamp($timestamp) as $job) {
-            $jobs[] = print_r($job, true);
+            $jobs[] = \print_r($job, true);
         }
 
         return $this->render(
             'InstasentResqueBundle:Default:scheduled_timestamp.html.twig',
             [
                 'timestamp' => $timestamp,
-                'jobs'      => $jobs,
+                'jobs' => $jobs,
             ]
         );
     }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Instasent\ResqueBundle\Command;
 
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
@@ -56,7 +58,7 @@ class StopWorkerCommand extends ContainerAwareCommand
                 return 1;
             }
 
-            $workers = array($worker);
+            $workers = [$worker];
         }
 
         foreach ($workers as $worker) {

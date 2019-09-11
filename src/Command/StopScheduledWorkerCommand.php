@@ -1,14 +1,12 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Instasent\ResqueBundle\Command;
 
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-
-if (!defined('SIGTERM')) {
-    define('SIGTERM', 15);
-}
 
 class StopScheduledWorkerCommand extends ContainerAwareCommand
 {
@@ -43,7 +41,7 @@ class StopScheduledWorkerCommand extends ContainerAwareCommand
 
         $output->writeln('Killing process '.$pid);
 
-        \posix_kill($pid, SIGTERM);
+        \posix_kill($pid, \SIGTERM);
 
         \unlink($pidFile);
 

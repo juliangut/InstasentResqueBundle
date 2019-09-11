@@ -2,13 +2,13 @@
 <?php
 
 // Find and initialize Composer
-$composerAutoloadFile = array(
+$composerAutoloadFile = [
     __DIR__ . '/../vendor/autoload.php',
     __DIR__ . '/../../vendor/autoload.php',
     __DIR__ . '/../../../autoload.php',
     __DIR__ . '/../../../../autoload.php',
     __DIR__ . '/../../../../../autoload.php',
-);
+];
 foreach ($composerAutoloadFile as $file) {
     if (\file_exists($file)) {
         require $file;
@@ -46,7 +46,7 @@ $logLevel = !empty($LOGGING) || !empty($VERBOSE) || !empty($VVERBOSE);
 $APP_INCLUDE = \getenv('APP_INCLUDE');
 if ($APP_INCLUDE) {
     if (!\file_exists($APP_INCLUDE)) {
-        die('APP_INCLUDE ('.$APP_INCLUDE.") does not exist.\n");
+        die('APP_INCLUDE (' . $APP_INCLUDE . ") does not exist.\n");
     }
 
     require_once $APP_INCLUDE;
@@ -79,7 +79,7 @@ if (\getenv('APP_KERNEL')) {
     if (!\class_exists($kernelClass, false)
         || !\in_array('Symfony\Component\HttpKernel\KernelInterface', \class_implements($kernelClass))
     ) {
-        die('APP_KERNEL ('.$symfonyKernelFile.") does not contain a Symfony Kernel class.\n");
+        die('APP_KERNEL (' . $symfonyKernelFile . ") does not contain a Symfony Kernel class.\n");
     }
 
     $SYMFONY_ENV = \getenv('SYMFONY_ENV');
@@ -95,7 +95,7 @@ if (\getenv('APP_KERNEL')) {
 
 $PREFIX = \getenv('PREFIX');
 if (!empty($PREFIX)) {
-    $logger->log(Psr\Log\LogLevel::INFO, 'Prefix set to {prefix}', array('prefix' => $PREFIX));
+    $logger->log(Psr\Log\LogLevel::INFO, 'Prefix set to {prefix}', ['prefix' => $PREFIX]);
     Resque_Redis::prefix($PREFIX);
 }
 
@@ -105,9 +105,9 @@ $worker->logLevel = $logLevel;
 $PIDFILE = \getenv('PIDFILE');
 if ($PIDFILE) {
     if (\file_put_contents($PIDFILE, \getmypid()) === false) {
-        $logger->log(Psr\Log\LogLevel::NOTICE, 'Could not write PID information to {pidfile}', array(
+        $logger->log(Psr\Log\LogLevel::NOTICE, 'Could not write PID information to {pidfile}', [
             'pidfile' => $PIDFILE
-        ));
+        ]);
     }
 }
 

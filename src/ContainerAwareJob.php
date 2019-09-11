@@ -1,24 +1,26 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Instasent\ResqueBundle;
 
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\Finder\Finder;
 use Symfony\Component\HttpKernel\KernelInterface;
-use Symfony\Component\DependencyInjection\ContainerInterface;
 
-abstract class ContainerAwareJob extends Job
+abstract class ContainerAwareJob extends Job implements ContainerAwareJobInterface
 {
     /**
      * @var KernelInterface
      */
-    private $kernel = null;
+    private $kernel;
 
     /**
      * @return ContainerInterface
      */
-    protected function getContainer()
+    protected function getContainer(): ContainerInterface
     {
-        if (isset($GLOBALS['KERNEL']) && $GLOBALS['KERNEL'] != null) {
+        if (isset($GLOBALS['KERNEL']) && $GLOBALS['KERNEL'] !== null) {
             $this->kernel = $GLOBALS['KERNEL'];
         }
 
@@ -30,6 +32,9 @@ abstract class ContainerAwareJob extends Job
         return $this->kernel->getContainer();
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function setKernelOptions(array $kernelOptions)
     {
         $this->args = \array_merge($this->args, $kernelOptions);
@@ -38,25 +43,28 @@ abstract class ContainerAwareJob extends Job
     /**
      * @return KernelInterface
      */
-    protected function createKernel()
+    protected function createKernel(): KernelInterface
     {
         $finder = new Finder();
         $finder->name('*Kernel.php')->depth(0)->in($this->args['kernel.root_dir']);
-        $results = iterator_to_array($finder);
-        $file = current($results);
+        $results = \iterator_to_array($finder);
+        $file = \current($results);
         $class = $file->getBasename('.php');
 
         require_once $file;
 
         return new $class(
-            isset($this->args['kernel.environment']) ? $this->args['kernel.environment'] : 'dev',
-            isset($this->args['kernel.debug']) ? $this->args['kernel.debug'] : true
+            $this->args['kernel.environment'] ?? 'dev',
+            $this->args['kernel.debug'] ?? true
         );
     }
 
+    /**
+     * {@inheritdoc}
+     */
     public function tearDown()
     {
-        if (isset($GLOBALS['KERNEL']) && $GLOBALS['KERNEL'] != null) {
+        if (isset($GLOBALS['KERNEL']) && $GLOBALS['KERNEL'] !== null) {
             return;
         }
 

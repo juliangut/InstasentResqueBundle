@@ -1,13 +1,15 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Instasent\ResqueBundle\Command;
 
-use Symfony\Component\Process\Process;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\Process\Process;
 
 class StartScheduledWorkerCommand extends StartWorkerCommand
 {
@@ -24,12 +26,44 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
         $this
             ->setName(self::NAME)
             ->setDescription('Start a instasent scheduled resque worker')
-            ->addOption('logging', 'l', InputOption::VALUE_OPTIONAL, 'Logging service')
-            ->addOption('interval', 'i', InputOption::VALUE_REQUIRED, 'How often to check for new jobs across the queues', \Resque::DEFAULT_INTERVAL)
-            ->addOption('force', null, InputOption::VALUE_NONE, 'Force creation of a new worker if the PID file exists')
-            ->addOption('foreground', 'f', InputOption::VALUE_NONE, 'Should the worker run in foreground')
-            ->addOption('hide-debug', null, InputOption::VALUE_NONE, 'Do not show debug information')
-            ->addOption('memory-limit', 'm', InputOption::VALUE_OPTIONAL, 'Force cli memory_limit (expressed in Mbytes)', 0);
+            ->addOption(
+                'logging',
+                'l',
+                InputOption::VALUE_OPTIONAL,
+                'Logging service'
+            )
+            ->addOption(
+                'interval',
+                'i',
+                InputOption::VALUE_REQUIRED,
+                'How often to check for new jobs across the queues',
+                (string) \Resque::DEFAULT_INTERVAL
+            )
+            ->addOption(
+                'force',
+                null,
+                InputOption::VALUE_NONE,
+                'Force creation of a new worker if the PID file exists'
+            )
+            ->addOption(
+                'foreground',
+                'f',
+                InputOption::VALUE_NONE,
+                'Should the worker run in foreground'
+            )
+            ->addOption(
+                'hide-debug',
+                null,
+                InputOption::VALUE_NONE,
+                'Do not show debug information'
+            )
+            ->addOption(
+                'memory-limit',
+                'm',
+                InputOption::VALUE_OPTIONAL,
+                'Force cli memory_limit (expressed in Mbytes)',
+                '0'
+            );
     }
 
     /**
@@ -111,9 +145,9 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
     }
 
     /**
-     * {@inheritDoc}
+     * {@inheritdoc}
      */
-    protected function getEnvironment(ContainerInterface $container, InputInterface $input)
+    protected function getEnvironment(ContainerInterface $container, InputInterface $input): array
     {
         $environment = $this->getRootEnvironment($container, $input);
         $environment = $this->getResqueEnvironment($environment, $container, $input);
@@ -127,7 +161,7 @@ class StartScheduledWorkerCommand extends StartWorkerCommand
     /**
      * {@inheritdoc}
      */
-    protected function getBinaryName()
+    protected function getBinaryName(): string
     {
         return 'resque-scheduler';
     }

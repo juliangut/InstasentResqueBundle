@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Instasent\ResqueBundle;
 
 class Queue
@@ -21,11 +23,19 @@ class Queue
         return $this->name;
     }
 
-    public function getJobs($start = 0, $stop = -1)
+    /**
+     * @param int $start
+     * @param int $stop
+     *
+     * @throws \Resque_Exception
+     *
+     * @return mixed[]
+     */
+    public function getJobs(int $start = 0, int $stop = -1): array
     {
         $jobs = \Resque::redis()->lrange('queue:'.$this->name, $start, $stop);
 
-        $result = array();
+        $result = [];
         foreach ($jobs as $job) {
             $job = new \Resque_Job($this->name, \json_decode($job, true));
             $result[] = $job->getInstance();

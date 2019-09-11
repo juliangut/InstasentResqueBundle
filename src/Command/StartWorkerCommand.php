@@ -1,17 +1,19 @@
 <?php
 
+declare(strict_types=1);
+declare(ticks=1);
+
 namespace Instasent\ResqueBundle\Command;
 
+use Instasent\ResqueBundle\WorkerBase;
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
-use Symfony\Component\Process\Process;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\DependencyInjection\ContainerInterface;
-
-declare(ticks = 1);
+use Symfony\Component\Process\Process;
 
 class StartWorkerCommand extends ContainerAwareCommand
 {
@@ -28,15 +30,63 @@ class StartWorkerCommand extends ContainerAwareCommand
         $this
             ->setName(self::NAME)
             ->setDescription('Start a instasent resque worker')
-            ->addOption('logging', 'l', InputOption::VALUE_OPTIONAL, 'Logging service')
-            ->addOption('count', 'c', InputOption::VALUE_REQUIRED, 'How many workers to fork', 1)
-            ->addOption('interval', 'i', InputOption::VALUE_REQUIRED, 'How often to check for new jobs across the queues', \Resque::DEFAULT_INTERVAL)
-            ->addOption('worker', 'w', InputOption::VALUE_OPTIONAL, 'Worker class', '\Instasent\ResqueBundle\WorkerBase')
-            ->addOption('blocking', 'b', InputOption::VALUE_OPTIONAL, 'Worker blocking')
-            ->addOption('foreground', 'f', InputOption::VALUE_NONE, 'Should the worker run in foreground')
-            ->addOption('hide-debug', null, InputOption::VALUE_NONE, 'Do not show debug information')
-            ->addOption('memory-limit', 'm', InputOption::VALUE_OPTIONAL, 'Force cli memory_limit (expressed in Mbytes)', 0)
-            ->addArgument('queues', InputArgument::REQUIRED, 'Queue names (separate using comma)');
+            ->addOption(
+                'logging',
+                'l',
+                InputOption::VALUE_OPTIONAL,
+                'Logging service'
+            )
+            ->addOption(
+                'count',
+                'c',
+                InputOption::VALUE_REQUIRED,
+                'How many workers to fork',
+                '1'
+            )
+            ->addOption(
+                'interval',
+                'i',
+                InputOption::VALUE_REQUIRED,
+                'How often to check for new jobs across the queues',
+                (string) \Resque::DEFAULT_INTERVAL
+            )
+            ->addOption(
+                'worker',
+                'w',
+                InputOption::VALUE_OPTIONAL,
+                'Worker class',
+                WorkerBase::class
+            )
+            ->addOption(
+                'blocking',
+                'b',
+                InputOption::VALUE_OPTIONAL,
+                'Worker blocking'
+            )
+            ->addOption(
+                'foreground',
+                'f',
+                InputOption::VALUE_NONE,
+                'Should the worker run in foreground'
+            )
+            ->addOption(
+                'hide-debug',
+                null,
+                InputOption::VALUE_NONE,
+                'Do not show debug information'
+            )
+            ->addOption(
+                'memory-limit',
+                'm',
+                InputOption::VALUE_OPTIONAL,
+                'Force cli memory_limit (expressed in Mbytes)',
+                '0'
+            )
+            ->addArgument(
+                'queues',
+                InputArgument::REQUIRED,
+                'Queue names (separate using comma)'
+            );
     }
 
     /**
@@ -105,10 +155,13 @@ class StartWorkerCommand extends ContainerAwareCommand
 
     /**
      * Prepare signaling.
+     *
+     * @param SymfonyStyle $ioStyle
+     * @param Process      $process
      */
     final protected function registerSignalHandlers(SymfonyStyle $ioStyle, Process $process)
     {
-        $closeHandler = function ($signo) use ($ioStyle, $process) {
+        $closeHandler = function ($signal) use ($ioStyle, $process) {
             $environment = $process->getEnv();
             $pidFile = $environment['PIDFILE'];
             if (!\file_exists($pidFile)) {
@@ -117,10 +170,10 @@ class StartWorkerCommand extends ContainerAwareCommand
                 return;
             }
 
-            $process->signal($signo);
+            $process->signal($signal);
 
             $pid = \file_get_contents($pidFile);
-            \posix_kill($pid, $signo);
+            \posix_kill($pid, $signal);
 
             \unlink($pidFile);
         };
@@ -140,7 +193,7 @@ class StartWorkerCommand extends ContainerAwareCommand
      *
      * @return array
      */
-    protected function getEnvironment(ContainerInterface $container, InputInterface $input)
+    protected function getEnvironment(ContainerInterface $container, InputInterface $input): array
     {
         $environment = $this->getRootEnvironment($container, $input);
         $environment = $this->getResqueEnvironment($environment, $container, $input);
@@ -163,9 +216,9 @@ class StartWorkerCommand extends ContainerAwareCommand
      *
      * @return array
      */
-    final protected function getRootEnvironment(ContainerInterface $container, InputInterface $input)
+    final protected function getRootEnvironment(ContainerInterface $container, InputInterface $input): array
     {
-        if (\version_compare(PHP_VERSION, '5.5.0') >= 0) {
+        if (\version_compare(\PHP_VERSION, '5.5.0') >= 0) {
             // here to work around issues with pcntl and cli_set_process_title in PHP > 5.5
             $environment = $_SERVER;
 
@@ -178,7 +231,7 @@ class StartWorkerCommand extends ContainerAwareCommand
                 $environment['argv']
             );
         } else {
-            $environment = array();
+            $environment = [];
         }
 
         $pidFile = $this->getContainer()->get('kernel')->getCacheDir().'/'.\uniqid('resque-worker-', true).'.pid';
@@ -193,15 +246,15 @@ class StartWorkerCommand extends ContainerAwareCommand
         }
 
         $environment['SYMFONY_ENV'] = \getenv('APP_ENV') !== false
-            ? getenv('APP_ENV')
+            ? \getenv('APP_ENV')
             : $container->getParameter('kernel.environment');
 
         $rootDir = $container->getParameter('kernel.root_dir');
 
-        $cacheFiles = array(
+        $cacheFiles = [
             $rootDir.'/../var/bootstrap.php.cache',
             $rootDir.'/bootstrap.php.cache',
-        );
+        ];
         foreach ($cacheFiles as $kernelFile) {
             if (\file_exists($kernelFile)) {
                 $environment['APP_INCLUDE'] = $kernelFile;
@@ -209,10 +262,10 @@ class StartWorkerCommand extends ContainerAwareCommand
             }
         }
 
-        $kernelFiles = array(
+        $kernelFiles = [
             $rootDir.'/Kernel.php',
             $rootDir.'/../app/AppKernel.php',
-        );
+        ];
         foreach ($kernelFiles as $kernelFile) {
             if (\file_exists($kernelFile)) {
                 $environment['APP_KERNEL'] = $kernelFile;
@@ -236,7 +289,7 @@ class StartWorkerCommand extends ContainerAwareCommand
         array $environment,
         ContainerInterface $container,
         InputInterface $input
-    ) {
+    ): array {
         $interval = $input->getOption('interval');
         if ($interval < 1) {
             throw new \Exception('Workers interval must be higher than 0');
@@ -303,15 +356,12 @@ class StartWorkerCommand extends ContainerAwareCommand
      */
     final protected function getCommand(ContainerInterface $container, InputInterface $input)
     {
-        if (\version_compare(PHP_VERSION, '5.4.0') >= 0) {
-            $php = PHP_BINARY;
-        } elseif (\defined('PHP_WINDOWS_VERSION_BUILD')) {
+        $php = \PHP_BINARY;
+        if (\defined('PHP_WINDOWS_VERSION_BUILD')) {
             $php = 'php';
-        } else {
-            $php = PHP_BINDIR.'/php';
         }
 
-        $options = array();
+        $options = [];
 
         $memoryLimit = (int) $input->getOption('memory-limit');
         if ($memoryLimit !== 0) {
@@ -324,7 +374,7 @@ class StartWorkerCommand extends ContainerAwareCommand
             '%s %s %s',
             $php,
             \implode(' ', $options),
-            __DIR__.'/../bin/'.$binaryName
+            __DIR__.'/../../bin/'.$binaryName
         );
 
         if (!$input->getOption('foreground')) {
@@ -344,7 +394,7 @@ class StartWorkerCommand extends ContainerAwareCommand
      *
      * @return string
      */
-    protected function getBinaryName()
+    protected function getBinaryName(): string
     {
         return 'resque';
     }

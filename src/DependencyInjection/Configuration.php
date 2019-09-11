@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Instasent\ResqueBundle\DependencyInjection;
 
 use Symfony\Component\Config\Definition\Builder\TreeBuilder;
@@ -8,7 +10,7 @@ use Symfony\Component\Config\Definition\ConfigurationInterface;
 /**
  * This is the class that validates and merges configuration from your app/config files.
  *
- * To learn more see {@link http://symfony.com/doc/current/cookbook/bundles/extension.html#cookbook-bundles-extension-config-class}
+ * @see http://symfony.com/doc/current/cookbook/bundles/extension.html#cookbook-bundles-extension-config-class
  */
 class Configuration implements ConfigurationInterface
 {
@@ -40,8 +42,8 @@ class Configuration implements ConfigurationInterface
                     ->beforeNormalization()
                         ->ifArray()
                         ->then(function ($var) {
-                            if (array_key_exists(0, $var)) {
-                                return array($var);
+                            if (\array_key_exists(0, $var)) {
+                                return [$var];
                             }
 
                             return $var;
@@ -83,8 +85,7 @@ class Configuration implements ConfigurationInterface
                         ->end()
                     ->end()
                 ->end()
-            ->end()
-        ;
+            ->end();
 
         return $treeBuilder;
     }

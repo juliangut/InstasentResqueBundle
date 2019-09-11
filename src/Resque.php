@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Instasent\ResqueBundle;
 
 use Psr\Log\NullLogger;
@@ -19,12 +21,12 @@ class Resque
     /**
      * @var array
      */
-    private $globalRetryStrategy = array();
+    private $globalRetryStrategy = [];
 
     /**
      * @var array
      */
-    private $jobRetryStrategy = array();
+    private $jobRetryStrategy = [];
 
     public function __construct(array $kernelOptions)
     {
@@ -38,12 +40,12 @@ class Resque
 
     public function setRedisConfiguration($host, $port, $database)
     {
-        $this->redisConfiguration = array(
+        $this->redisConfiguration = [
             'host' => $host,
             'port' => $port,
             'database' => $database,
-        );
-        $host = substr($host, 0, 1) == '/' ? $host : $host.':'.$port;
+        ];
+        $host = \substr($host, 0, 1) === '/' ? $host : $host.':'.$port;
 
         \Resque::setBackend($host, $database);
     }
@@ -76,8 +78,6 @@ class Resque
         if ($trackStatus) {
             return new \Resque_Job_Status($result);
         }
-
-        return;
     }
 
     public function enqueueOnce(JobInterface $job, $trackStatus = false)
@@ -86,9 +86,9 @@ class Resque
         $jobs = $queue->getJobs();
 
         foreach ($jobs as $j) {
-            if ($j->job->payload['class'] == get_class($job)) {
-                if (count(array_intersect($j->args, $job->getArguments())) == count($job->getArguments())) {
-                    return ($trackStatus) ? $j->job->payload['id'] : null;
+            if ($j->job->payload['class'] === \get_class($job)) {
+                if (\count(\array_intersect($j->args, $job->getArguments())) === \count($job->getArguments())) {
+                    return $trackStatus ? $j->job->payload['id'] : null;
                 }
             }
         }
@@ -105,8 +105,6 @@ class Resque
         $this->attachRetryStrategy($job);
 
         \ResqueScheduler::enqueueAt($at, $job->getQueue(), \get_class($job), $job->getArguments());
-
-        return;
     }
 
     public function enqueueIn($in, JobInterface $job)
@@ -118,8 +116,6 @@ class Resque
         $this->attachRetryStrategy($job);
 
         \ResqueScheduler::enqueueIn($in, $job->getQueue(), \get_class($job), $job->getArguments());
-
-        return;
     }
 
     public function removedDelayed(JobInterface $job)
@@ -141,7 +137,12 @@ class Resque
 
         $this->attachRetryStrategy($job);
 
-        return \ResqueScheduler::removeDelayedJobFromTimestamp($at, $job->getQueue(), \get_class($job), $job->getArguments());
+        return \ResqueScheduler::removeDelayedJobFromTimestamp(
+            $at,
+            $job->getQueue(),
+            \get_class($job),
+            $job->getArguments()
+        );
     }
 
     public function getQueues()
@@ -152,7 +153,9 @@ class Resque
     }
 
     /**
-     * Returns an array of queues with its current load
+     * Returns an array of queues with its current load.
+     *
+     * @param null|mixed $pattern
      *
      * @return array
      */
@@ -172,10 +175,10 @@ class Resque
      * @param $parallelQueues
      *
      * @return array of queues with its loads
-    */
+     */
     public function getParallelQueueLoads($queueKey, $parallelQueues)
     {
-        for ($i=1; $i <= $parallelQueues; $i++) {
+        for ($i = 1; $i <= $parallelQueues; ++$i) {
             $queues[$queueKey.'-'.$i] = \Resque::size($queueKey.'-'.$i);
         }
 
@@ -183,15 +186,18 @@ class Resque
     }
 
     /**
+     * @param mixed $queueKey
+     * @param mixed $parallelQueues
+     *
      * @return string The queue name with less job load
-    */
+     */
     public function getLessLoadedParallelQueue($queueKey, $parallelQueues)
     {
         $queues = $this->getParallelQueueLoads($queueKey, $parallelQueues);
-        asort($queues);
-        $lessLoadedQueue = array_slice($queues, 0, 1);
+        \asort($queues);
+        $lessLoadedQueue = \array_slice($queues, 0, 1);
 
-        return key($lessLoadedQueue);
+        return \key($lessLoadedQueue);
     }
 
     /**
@@ -233,9 +239,9 @@ class Resque
         $timestamps = \Resque::redis()->zrange('delayed_queue_schedule', 0, -1);
 
         //TODO: find a more efficient way to do this
-        $out = array();
+        $out = [];
         foreach ($timestamps as $timestamp) {
-            $out[] = array($timestamp, \Resque::redis()->llen('delayed:'.$timestamp));
+            $out[] = [$timestamp, \Resque::redis()->llen('delayed:'.$timestamp)];
         }
 
         return $out;
@@ -244,11 +250,11 @@ class Resque
     public function getFirstDelayedJobTimestamp()
     {
         $timestamps = $this->getDelayedJobTimestamps();
-        if (count($timestamps) > 0) {
+        if (\count($timestamps) > 0) {
             return $timestamps[0];
         }
 
-        return array(null, 0);
+        return [null, 0];
     }
 
     public function getNumberOfDelayedJobs()
@@ -259,9 +265,9 @@ class Resque
     public function getJobsForTimestamp($timestamp)
     {
         $jobs = \Resque::redis()->lrange('delayed:'.$timestamp, 0, -1);
-        $out = array();
+        $out = [];
         foreach ($jobs as $job) {
-            $out[] = json_decode($job, true);
+            $out[] = \json_decode($job, true);
         }
 
         return $out;
@@ -284,10 +290,10 @@ class Resque
     {
         $jobs = \Resque::redis()->lrange('failed', $start, $count);
 
-        $result = array();
+        $result = [];
 
         foreach ($jobs as $job) {
-            $result[] = new FailedJob(json_decode($job, true));
+            $result[] = new FailedJob(\json_decode($job, true));
         }
 
         return $result;
@@ -300,11 +306,11 @@ class Resque
      */
     protected function attachRetryStrategy(JobInterface $job)
     {
-        $class = get_class($job);
+        $class = \get_class($job);
 
-        if (isset($this->jobRetryStrategy[$class]) && count($this->jobRetryStrategy[$class])) {
+        if (isset($this->jobRetryStrategy[$class]) && \count($this->jobRetryStrategy[$class])) {
             $job->setArgument('instasent_resque.retry_strategy', $this->jobRetryStrategy[$class]);
-        } elseif (count($this->globalRetryStrategy)) {
+        } elseif (\count($this->globalRetryStrategy)) {
             $job->setArgument('instasent_resque.retry_strategy', $this->globalRetryStrategy);
         }
     }

@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Instasent\ResqueBundle\Command;
 
 use Symfony\Bundle\FrameworkBundle\Command\ContainerAwareCommand;
@@ -22,7 +24,11 @@ class ClearQueueCommand extends ContainerAwareCommand
         $this
             ->setName(self::NAME)
             ->setDescription('Clear a Instasent queue')
-            ->addArgument('queue', InputArgument::REQUIRED, 'Queue names (separate using comma)');
+            ->addArgument(
+                'queue',
+                InputArgument::REQUIRED,
+                'Queue names (separate using comma)'
+            );
     }
 
     /**
