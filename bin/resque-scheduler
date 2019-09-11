@@ -111,5 +111,5 @@ if ($PIDFILE) {
     }
 }
 
-$logger->log(Psr\Log\LogLevel::NOTICE, 'Starting scheduler worker');
+$logger->log(Psr\Log\LogLevel::INFO, 'Starting scheduler worker');
 $worker->work($interval);
