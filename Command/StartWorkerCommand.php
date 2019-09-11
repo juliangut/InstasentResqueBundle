@@ -68,10 +68,16 @@ class StartWorkerCommand extends ContainerAwareCommand
             return 1;
         }
 
-        $process = new Process($this->getCommand($container, $input), null, $environment, null, null);
+        $commandLine = $this->getCommand($container, $input);
+
+        if (\method_exists(Process::class, 'fromShellCommandline')) {
+            $process = Process::fromShellCommandline($commandLine, null, $environment, null, null);
+        } else {
+            $process = new Process($commandLine, null, $environment, null, null);
+        }
 
         if (!$input->getOption('hide-debug')) {
-            $ioStyle->note(\sprintf('Starting worker %s', $process->getCommandLine()));
+            $ioStyle->note(\sprintf('Starting worker %s', $commandLine));
             $ioStyle->newLine();
         }
 
