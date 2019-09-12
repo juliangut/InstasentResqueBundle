@@ -43,7 +43,6 @@
             "Instasent\\ResqueBundle\\": "src/"
         }
     },
-    "target-dir": "Instasent/ResqueBundle",
     "scripts": {
         "lint-php": "php -l src && php -l bin",
         "lint-phpcs": "phpcs --standard=PSR2 src bin",
