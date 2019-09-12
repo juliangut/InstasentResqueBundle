@@ -155,7 +155,7 @@ class Resque
     /**
      * Returns an array of queues with its current load.
      *
-     * @param null|mixed $pattern
+     * @param mixed|null $pattern
      *
      * @return array
      */

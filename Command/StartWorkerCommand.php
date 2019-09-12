@@ -374,7 +374,7 @@ class StartWorkerCommand extends ContainerAwareCommand
             '%s %s %s',
             $php,
             \implode(' ', $options),
-            __DIR__.'/../../bin/'.$binaryName
+            __DIR__.'/../bin/'.$binaryName
         );
 
         if (!$input->getOption('foreground')) {
