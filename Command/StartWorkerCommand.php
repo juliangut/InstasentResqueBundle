@@ -334,8 +334,7 @@ class StartWorkerCommand extends ContainerAwareCommand
      */
     protected function getWorkerEnvironment(array $environment, InputInterface $input)
     {
-        $blocking = \trim($input->getOption('blocking')) !== '';
-        if ($blocking) {
+        if ($input->getOption('blocking') !== null) {
             $environment['BLOCKING'] = 1;
         }
 

@@ -247,25 +247,25 @@ spawning, monitoring, stopping and restarting.
 
 ```ini
 [program:myapp_phpresque_default]
-command = /usr/bin/php /home/sites/myapp/prod/current/vendor/instasent/resque-bundle/Instasent/ResqueBundle/bin/resque
+command = /usr/bin/php /home/sites/myapp/prod/current/vendor/instasent/resque-bundle/bin/resque
 user = myusername
 environment = APP_INCLUDE='/home/sites/myapp/prod/current/vendor/autoload.php',VERBOSE='1',QUEUE='default'
 stopsignal=QUIT
 
 [program:myapp_phpresque_default_single_worker]
-command = /usr/bin/php /home/sites/myapp/prod/current/vendor/instasent/resque-bundle/Instasent/ResqueBundle/bin/resque-single
+command = /usr/bin/php /home/sites/myapp/prod/current/vendor/instasent/resque-bundle/bin/resque-single
 user = myusername
 environment = APP_KERNEL='/home/sites/myapp/prod/current/app/AppKernel.php',APP_INCLUDE='/home/sites/myapp/prod/current/vendor/autoload.php',VERBOSE='1',QUEUE='default'
 stopsignal=QUIT
 
 [program:myapp_phpresque_scheduledworker]
-command = /usr/bin/php /home/sites/myapp/prod/current/vendor/instasent/resque-bundle/Instasent/ResqueBundle/bin/resque-scheduler
+command = /usr/bin/php /home/sites/myapp/prod/current/vendor/instasent/resque-bundle/bin/resque-scheduler
 user = myusername
 environment = APP_INCLUDE='/home/sites/myapp/prod/current/vendor/autoload.php',VERBOSE='1',RESQUE_PHP='/home/sites/myapp/prod/current/vendor/chrisboulton/php-resque/lib/Resque.php'
 stopsignal=QUIT
 
 [program:myapp_phpresque_default_single_worker_logger]
-command = /usr/bin/php /home/sites/myapp/prod/current/vendor/instasent/resque-bundle/Instasent/ResqueBundle/bin/resque-single
+command = /usr/bin/php /home/sites/myapp/prod/current/vendor/instasent/resque-bundle/bin/resque-single
 user = myusername
 environment = APP_KERNEL='/home/sites/myapp/prod/current/app/AppKernel.php',LOG_CHANNEL='monolog.logger.custom',APP_INCLUDE='/home/sites/myapp/prod/current/vendor/autoload.php',VERBOSE='1',QUEUE='default'
 stopsignal=QUIT
